@@ -46,19 +46,35 @@ impl Board {
     }
 }
 
+pub fn format_grid(i: usize, tile: &Tile, size: usize) -> String {
+    let x = i % size;
+    let y = i / size;
+    let line = (0..size * 2 + 7)
+        .map(|i| if i % 8 == 0 { "+" } else { "-" })
+        .fold(String::new(), |acc, c| acc + c);
+
+    if y == 0 && x == 0 {
+        format!("{}\n| {}", line, tile)
+    } else if !(x != size - 1 || y <= 1 && y != size - 1 || y % 3 != 2 && y != size - 1) {
+        format!(" {} |\n{}\n", tile, line)
+    } else if x > 1 && (x - 1) % 3 == 2 {
+        format!(" | {}", tile)
+    } else if x == size - 1 {
+        format!(" {} |\n", tile)
+    } else if x == 0 {
+        format!("| {}", tile)
+    } else {
+        format!(" {}", tile)
+    }
+}
+
 impl Display for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let grid = self
             .tiles
             .iter()
             .enumerate()
-            .map(|(i, tile)| {
-                if i % self.size == self.size - 1 {
-                    format!("|{}|\n", tile)
-                } else {
-                    format!("|{}", tile)
-                }
-            })
+            .map(|(i, tile)| format_grid(i, tile, self.size))
             .fold(String::new(), |acc, c| acc + &c);
         write!(f, "{}", grid)
     }
@@ -186,7 +202,7 @@ impl BoardGeneratorBuilder {
 pub struct BoardGenerator {
     max_iterations: usize,
     rng: ChaCha8Rng,
-    board: Board,
+    pub board: Board,
     iterations: usize,
     is_cut: bool,
 }
