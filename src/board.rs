@@ -8,12 +8,12 @@ use std::ops::Range;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, RefCastCustom, Copy)]
 #[repr(transparent)]
-pub struct Tile(u8);
+pub struct Tile(pub u8);
 
 impl Display for Tile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let symbol = if self.0 == 0 {
-            "  "
+            " "
         } else {
             &format!("{}", self.0)
         };
@@ -21,8 +21,10 @@ impl Display for Tile {
     }
 }
 
-pub fn init_tiles(size: usize) -> Vec<Tile> {
-    vec![Tile(0); size * size]
+impl Tile {
+    pub fn init(size: usize) -> Vec<Tile> {
+        vec![Tile(0); size * size]
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -37,12 +39,12 @@ impl Board {
         Self {
             size,
             seed,
-            tiles: init_tiles(size),
+            tiles: Tile::init(size),
         }
     }
 
     pub fn clear(&mut self) {
-        self.tiles = init_tiles(self.size)
+        self.tiles = Tile::init(self.size)
     }
 }
 
@@ -143,8 +145,10 @@ pub fn shuffled_empty_tiles(board: &Board, rng: &mut ChaCha8Rng) -> Vec<usize> {
 
 pub fn next_empty(board: &Board, rng: &mut ChaCha8Rng) -> Option<(usize, usize)> {
     let mut x_range = (0..board.size).collect::<Vec<usize>>();
+    let mut y_range = x_range.clone();
+
     x_range.shuffle(rng);
-    let y_range = x_range.clone();
+    y_range.shuffle(rng);
 
     for y in &y_range {
         for x in &x_range {
@@ -156,47 +160,30 @@ pub fn next_empty(board: &Board, rng: &mut ChaCha8Rng) -> Option<(usize, usize)>
     None
 }
 
-pub struct BoardGeneratorBuilder {
-    seed: u64,
-    max_iterations: usize,
-    size: usize,
-}
+pub fn solve(board: &Board, rng: &mut ChaCha8Rng, counter: &mut usize) -> Option<Board> {
+    let mut numbers: Vec<u8> = (1..=9).collect();
+    let (x, y) = match next_empty(board, rng) {
+        None => return Some(board.clone()),
+        Some((x, y)) => (x, y),
+    };
 
-impl Default for BoardGeneratorBuilder {
-    fn default() -> Self {
-        Self {
-            seed: rng::generate_seed(),
-            size: 9,
-            max_iterations: 500,
+    numbers.shuffle(rng);
+
+    for number in &numbers {
+        *counter += 1;
+        if *counter >= 5000 {
+            return None;
+        }
+        if is_placeable(x, y, board, *number) {
+            let mut board = board.clone();
+            board.tiles[index_from_xy(x, y, board.size)] = Tile(*number);
+            if let Some(board) = solve(&board, rng, counter) {
+                return Some(board.clone());
+            }
+            board.tiles[index_from_xy(x, y, board.size)] = Tile(0);
         }
     }
-}
-
-impl BoardGeneratorBuilder {
-    pub fn seed(mut self, seed: u64) -> Self {
-        self.seed = seed;
-        self
-    }
-
-    pub fn max_iterations(mut self, max_iterations: usize) -> Self {
-        self.max_iterations = max_iterations;
-        self
-    }
-
-    pub fn size(mut self, size: usize) -> Self {
-        self.size = size;
-        self
-    }
-
-    pub fn build(self) -> BoardGenerator {
-        BoardGenerator {
-            max_iterations: self.max_iterations,
-            board: Board::new(self.size, self.seed),
-            rng: rng::rng_from_seed(self.seed),
-            iterations: 0,
-            is_cut: false,
-        }
-    }
+    None
 }
 
 pub struct BoardGenerator {
@@ -252,8 +239,101 @@ impl BoardGenerator {
     pub fn board(&mut self) -> Board {
         self.next()
     }
+
+    pub fn make_playable(&mut self, number_of_holes: usize) -> PlayableBoard {
+        let mut holes = Vec::new();
+        let mut order = 0;
+
+        while holes.len() < number_of_holes {
+            let index = self.rng.random_range(0..self.board.size * self.board.size);
+            let (x, y) = index_to_xy(index, self.board.size);
+            if self.board.tiles[index] == Tile(0) {
+                continue;
+            }
+            holes.push(Hole {
+                x,
+                y,
+                order,
+                value: self.board.tiles[index],
+            });
+            self.board.tiles[index] = Tile(0);
+            let board = self.board.clone();
+            if solve(&board, &mut self.rng, &mut 0).is_none() {
+                if let Some(hole) = holes.pop() {
+                    self.board.tiles[index] = hole.value;
+                }
+            } else {
+                println!("order: {} holes: {}", order, holes.len());
+                println!("{}", self.board);
+                order += 1;
+                // println!("Board is still solvable");
+            }
+        }
+        PlayableBoard {
+            board: self.board.clone(),
+            holes: holes.clone(),
+        }
+    }
 }
 
+pub struct BoardGeneratorBuilder {
+    seed: u64,
+    max_iterations: usize,
+    size: usize,
+}
+
+impl Default for BoardGeneratorBuilder {
+    fn default() -> Self {
+        Self {
+            seed: rng::generate_seed(),
+            size: 9,
+            max_iterations: 500,
+        }
+    }
+}
+
+impl BoardGeneratorBuilder {
+    pub fn seed(mut self, seed: u64) -> Self {
+        self.seed = seed;
+        self
+    }
+
+    pub fn max_iterations(mut self, max_iterations: usize) -> Self {
+        self.max_iterations = max_iterations;
+        self
+    }
+
+    pub fn size(mut self, size: usize) -> Self {
+        self.size = size;
+        self
+    }
+
+    pub fn build(self) -> BoardGenerator {
+        BoardGenerator {
+            max_iterations: self.max_iterations,
+            board: Board::new(self.size, self.seed),
+            rng: rng::rng_from_seed(self.seed),
+            iterations: 0,
+            is_cut: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Hole {
+    x: usize,
+    y: usize,
+    order: usize,
+    value: Tile,
+}
+
+#[derive(Debug, Clone)]
+pub struct PlayableBoard {
+    pub board: Board,
+    pub holes: Vec<Hole>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Difficulty {
     Easy,
     Medium,
@@ -263,9 +343,9 @@ pub enum Difficulty {
 impl Difficulty {
     pub fn starting_range(&self) -> Range<usize> {
         match self {
-            Difficulty::Easy => 25..30,
-            Difficulty::Medium => 20..25,
-            Difficulty::Hard => 17..20,
+            Difficulty::Easy => 35..40,
+            Difficulty::Medium => 25..35,
+            Difficulty::Hard => 21..25,
         }
     }
 }

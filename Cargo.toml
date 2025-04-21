@@ -3,9 +3,16 @@ name = "sudoku"
 version = "0.1.0"
 edition = "2024"
 
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
 [dependencies]
 rand = "0.9.1"
 rand_chacha = "0.9.0"
 ref-cast = "1.0.24"
 anyhow = "1.0.98"
 clap = { version = "4.5", features = ["derive"] }
+
+[[bench]]
+name = "generate"
+harness = false

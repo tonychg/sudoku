@@ -22,6 +22,8 @@ enum Commands {
         max_iterations: usize,
         #[arg(short, long, default_value_t = 9)]
         size: usize,
+        #[arg(long, default_value_t = 40)]
+        starting_numbers: usize,
     },
 }
 
@@ -38,7 +40,8 @@ impl CliRunner {
                 max_iterations,
                 seed,
                 size,
-            } => generate(max_iterations, seed, size),
+                starting_numbers,
+            } => generate(max_iterations, seed, size, starting_numbers),
         }
     }
 }
