@@ -7,6 +7,5 @@ pub fn rng_from_seed(seed: u64) -> ChaCha8Rng {
 }
 
 pub fn generate_seed() -> u64 {
-    let mut rng = ChaCha8Rng::from_os_rng();
-    rng.random()
+    ChaCha8Rng::from_os_rng().random()
 }

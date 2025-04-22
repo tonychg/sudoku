@@ -2,7 +2,13 @@ use crate::grid;
 use anyhow::Result;
 use std::io;
 
-pub fn solve_command(_stdin: bool) -> Result<()> {
+#[derive(clap::Args, Clone, Debug)]
+pub(crate) struct SolveArgs {
+    #[arg(short, long, default_value_t = false)]
+    stdin: bool,
+}
+
+pub fn cmd_solve(_args: &SolveArgs) -> Result<()> {
     let buffer = io::stdin()
         .lines()
         .map_while(Result::ok)
