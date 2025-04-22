@@ -65,12 +65,12 @@ impl GridGenerator {
     pub fn grid(&mut self) -> Vec<Vec<u8>> {
         self.rng = rng::rng_from_seed(self.seed);
         self.iterations += 1;
+
         if self.iterations >= self.max_iterations {
             self.iterations = 0;
             self.seed = self.rng.random();
             self.grid = vec![vec![0; self.size]; self.size];
         }
-
         let (x, y) = match next_empty(&self.grid, &mut self.rng) {
             Some((x, y)) => (x, y),
             None => {
@@ -94,7 +94,7 @@ impl GridGenerator {
     }
 }
 
-pub fn print_pretty_grid(grid: &[Vec<u8>]) {
+pub fn print_pretty(grid: &[Vec<u8>]) {
     let size = grid.len();
     let line = (0..size * 2 + 7)
         .map(|i| if i % 8 == 0 { "+" } else { "-" })
@@ -119,7 +119,7 @@ pub fn print_pretty_grid(grid: &[Vec<u8>]) {
     println!()
 }
 
-pub fn print_raw_grid(grid: &[Vec<u8>]) {
+pub fn print_raw(grid: &[Vec<u8>]) {
     for row in grid.iter() {
         for col in row.iter() {
             print!("{}", col);

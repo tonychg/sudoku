@@ -1,9 +1,6 @@
 use anyhow::Result;
 
-use crate::grid::generate;
-use crate::grid::make_playable;
-use crate::grid::print_pretty_grid;
-use crate::grid::print_raw_grid;
+use crate::grid;
 use crate::rng;
 
 pub fn generate_command(
@@ -17,19 +14,19 @@ pub fn generate_command(
         Some(seed) => seed,
         None => rng::generate_seed(),
     };
-    let grid = generate(size, seed, max_iterations);
-    let playable = make_playable(&grid, starting_numbers, seed);
+    let grid = grid::generate(size, seed, max_iterations);
+    let playable = grid::make_playable(&grid, starting_numbers, seed);
 
     println!("seed: {}", seed);
 
     if raw {
-        print_raw_grid(&grid);
+        grid::print_raw(&grid);
         println!();
-        print_raw_grid(&playable);
+        grid::print_raw(&playable);
     } else {
-        print_pretty_grid(&grid);
+        grid::print_pretty(&grid);
         println!();
-        print_pretty_grid(&playable);
+        grid::print_pretty(&playable);
     }
     Ok(())
 }

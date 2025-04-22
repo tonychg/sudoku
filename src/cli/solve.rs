@@ -9,9 +9,9 @@ pub fn solve_command(_stdin: bool) -> Result<()> {
         .collect::<Vec<String>>()
         .join("\n");
     let mut grid = grid::parse(&buffer);
-    grid::print_pretty_grid(&grid);
+    grid::print_pretty(&grid);
     println!();
     grid::solve(&mut grid);
-    grid::print_pretty_grid(&grid);
+    grid::print_pretty(&grid);
     Ok(())
 }
