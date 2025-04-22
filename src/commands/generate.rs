@@ -20,15 +20,13 @@ pub(crate) struct GenerateArgs {
     raw: bool,
 }
 
+#[tracing::instrument]
 pub(crate) fn cmd_generate(args: &GenerateArgs) -> Result<()> {
-    let seed = match args.seed {
-        Some(seed) => seed,
-        None => rng::generate_seed(),
-    };
+    let seed = args.seed.unwrap_or(rng::generate_seed());
     let grid = grid::generate(args.size, seed, args.max_iterations);
     let playable = grid::make_playable(&grid, args.starting_numbers, seed);
 
-    println!("seed: {}", seed);
+    tracing::info!(seed);
 
     if args.raw {
         grid::print_raw(&grid);

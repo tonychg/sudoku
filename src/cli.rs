@@ -15,6 +15,7 @@ pub struct CliRunner;
 
 impl CliRunner {
     pub fn init() -> Self {
+        tracing_subscriber::fmt::init();
         Self
     }
 

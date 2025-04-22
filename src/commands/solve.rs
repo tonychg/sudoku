@@ -8,6 +8,7 @@ pub(crate) struct SolveArgs {
     stdin: bool,
 }
 
+#[tracing::instrument]
 pub fn cmd_solve(_args: &SolveArgs) -> Result<()> {
     let buffer = io::stdin()
         .lines()
