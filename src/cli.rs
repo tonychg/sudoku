@@ -1,6 +1,8 @@
 mod generate;
+mod solve;
 
-use crate::cli::generate::generate;
+use crate::cli::generate::generate_command;
+use crate::cli::solve::solve_command;
 use anyhow::Result;
 use clap::Parser;
 use clap::Subcommand;
@@ -15,7 +17,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Generate a new grid
+    /// Generate a new board
     Generate {
         seed: Option<u64>,
         #[arg(short, long, default_value_t = 200)]
@@ -24,6 +26,13 @@ enum Commands {
         size: usize,
         #[arg(long, default_value_t = 40)]
         starting_numbers: usize,
+        #[arg(short, long, default_value_t = false)]
+        raw: bool,
+    },
+    /// Solve a board
+    Solve {
+        #[arg(short, long, default_value_t = false)]
+        stdin: bool,
     },
 }
 
@@ -41,7 +50,9 @@ impl CliRunner {
                 seed,
                 size,
                 starting_numbers,
-            } => generate(max_iterations, seed, size, starting_numbers),
+                raw,
+            } => generate_command(max_iterations, seed, size, starting_numbers, raw),
+            Commands::Solve { stdin } => solve_command(stdin),
         }
     }
 }

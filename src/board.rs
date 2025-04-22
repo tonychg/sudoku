@@ -43,6 +43,35 @@ impl Board {
         }
     }
 
+    pub fn raw(&self) -> String {
+        let mut out = String::new();
+
+        for (index, tile) in self.tiles.iter().enumerate() {
+            out.push_str(&format!("{}", tile.0));
+            if index != 0 && (index + 1) % self.size == 0 {
+                out.push('\n');
+            }
+        }
+        out
+    }
+
+    pub fn from_string_board(string: &str) -> Self {
+        let mut tiles = Vec::new();
+        for row in string.split("\n") {
+            for c in row.chars() {
+                match (c.to_string()).parse::<u8>() {
+                    Ok(value) => tiles.push(Tile(value)),
+                    Err(_) => tiles.push(Tile(0)),
+                }
+            }
+        }
+        Self {
+            size: 9,
+            seed: 0,
+            tiles,
+        }
+    }
+
     pub fn clear(&mut self) {
         self.tiles = Tile::init(self.size)
     }
@@ -127,22 +156,6 @@ pub fn is_placeable(x: usize, y: usize, board: &Board, value: u8) -> bool {
         && !is_in_square(x, y, board, value)
 }
 
-pub fn search_empty_tiles(board: &Board) -> Vec<usize> {
-    board
-        .tiles
-        .iter()
-        .enumerate()
-        .filter(|(_, v)| **v == Tile(0))
-        .map(|(i, _)| i)
-        .collect()
-}
-
-pub fn shuffled_empty_tiles(board: &Board, rng: &mut ChaCha8Rng) -> Vec<usize> {
-    let mut empty_tiles = search_empty_tiles(board);
-    empty_tiles.shuffle(rng);
-    empty_tiles
-}
-
 pub fn next_empty(board: &Board, rng: &mut ChaCha8Rng) -> Option<(usize, usize)> {
     let mut x_range = (0..board.size).collect::<Vec<usize>>();
     let mut y_range = x_range.clone();
@@ -160,6 +173,97 @@ pub fn next_empty(board: &Board, rng: &mut ChaCha8Rng) -> Option<(usize, usize)>
     None
 }
 
+pub fn solve2(board: &mut Board, rng: &mut ChaCha8Rng, counter: &mut usize) -> Option<Board> {
+    *counter += 1;
+
+    if *counter >= 10000 {
+        *counter = 0;
+        return None;
+    }
+
+    println!("{}", board);
+
+    let (x, y) = match next_empty(board, rng) {
+        None => return Some(board.clone()),
+        Some((x, y)) => (x, y),
+    };
+
+    for number in 1..=9_u8 {
+        if is_placeable(x, y, board, number) {
+            board.tiles[index_from_xy(x, y, board.size)] = Tile(number);
+            if let Some(board) = solve2(board, rng, counter) {
+                return Some(board.clone());
+            }
+            board.tiles[index_from_xy(x, y, board.size)] = Tile(0);
+        }
+    }
+    None
+}
+
+pub struct Solver {
+    rng: ChaCha8Rng,
+    max_iterations: usize,
+    board: Board,
+    start: Board,
+    iterations: usize,
+    is_cut: bool,
+}
+
+impl Solver {
+    pub fn new(board: &Board) -> Self {
+        Self {
+            rng: rng::rng_from_seed(rng::generate_seed()),
+            max_iterations: 5000,
+            board: board.clone(),
+            start: board.clone(),
+            iterations: 0,
+            is_cut: false,
+        }
+    }
+
+    pub fn reset(&mut self) {
+        // self.iterations = 0;
+        // self.board = self.start.clone();
+    }
+
+    fn next(&mut self) -> Board {
+        // self.rng = rng::rng_from_seed(self.board.seed);
+
+        println!("{}", self.board);
+
+        self.iterations += 1;
+
+        if self.iterations >= self.max_iterations {
+            self.reset();
+        }
+
+        let (x, y) = match next_empty(&self.board, &mut self.rng) {
+            None => {
+                self.is_cut = false;
+                return self.board.clone();
+            }
+            Some((x, y)) => (x, y),
+        };
+
+        for value in 1..=self.board.size as u8 {
+            if is_placeable(x, y, &self.board, value) {
+                let mut board = self.board.clone();
+                board.tiles[index_from_xy(x, y, self.board.size)] = Tile(value);
+                self.board = self.next();
+                if !self.is_cut {
+                    return self.board.clone();
+                }
+            }
+        }
+        self.is_cut = true;
+        self.board.clone()
+    }
+
+    pub fn run(&mut self) -> Board {
+        self.next()
+    }
+}
+
 pub fn solve(board: &Board, rng: &mut ChaCha8Rng, counter: &mut usize) -> Option<Board> {
     let mut numbers: Vec<u8> = (1..=9).collect();
     let (x, y) = match next_empty(board, rng) {
@@ -168,12 +272,14 @@ pub fn solve(board: &Board, rng: &mut ChaCha8Rng, counter: &mut usize) -> Option
     };
 
     numbers.shuffle(rng);
+    println!("{}", board);
+    *counter += 1;
+
+    if *counter >= 10000 {
+        return Some(board.clone());
+    }
 
     for number in &numbers {
-        *counter += 1;
-        if *counter >= 5000 {
-            return None;
-        }
         if is_placeable(x, y, board, *number) {
             let mut board = board.clone();
             board.tiles[index_from_xy(x, y, board.size)] = Tile(*number);
