@@ -2,16 +2,10 @@ use criterion::Criterion;
 use criterion::criterion_group;
 use criterion::criterion_main;
 use std::hint::black_box;
-use sudoku::board::Board;
-use sudoku::board::BoardGenerator;
+use sudoku::grid::generate;
 
-fn generate_boards(seed: u64, s: usize, max_i: usize) -> Board {
-    BoardGenerator::builder()
-        .seed(seed)
-        .size(s)
-        .max_iterations(max_i)
-        .build()
-        .board()
+fn generate_boards(seed: u64, s: usize, max_i: usize) -> Vec<Vec<u8>> {
+    generate(s, seed, max_i)
 }
 
 fn criterion_benchmark(c: &mut Criterion) {

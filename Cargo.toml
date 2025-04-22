@@ -16,3 +16,7 @@ clap = { version = "4.5", features = ["derive"] }
 [[bench]]
 name = "generate"
 harness = false
+
+[[bench]]
+name = "solve"
+harness = false

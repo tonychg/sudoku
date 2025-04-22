@@ -51,35 +51,47 @@ fn next_empty(grid: &[Vec<u8>], rng: &mut ChaCha8Rng) -> Option<(usize, usize)> 
     None
 }
 
-pub fn init(grid: &mut Vec<Vec<u8>>, size: usize) {
-    grid.clear();
-
-    for _ in 0..size {
-        grid.push(vec![0; size]);
-    }
+struct GridGenerator {
+    max_iterations: usize,
+    rng: ChaCha8Rng,
+    grid: Vec<Vec<u8>>,
+    size: usize,
+    iterations: usize,
+    is_cut: bool,
+    seed: u64,
 }
 
-pub fn place_number(grid: &mut [Vec<u8>], x: usize, y: usize) -> Option<(usize, usize)> {
-    for i in 1..=9u8 {
-        if is_placeable(grid, x, y, i) {
-            grid[y][x] = i;
-            return Some((x, y));
+impl GridGenerator {
+    pub fn grid(&mut self) -> Vec<Vec<u8>> {
+        self.rng = rng::rng_from_seed(self.seed);
+        self.iterations += 1;
+        if self.iterations >= self.max_iterations {
+            self.iterations = 0;
+            self.seed = self.rng.random();
+            self.grid = vec![vec![0; self.size]; self.size];
         }
-    }
-    grid[y][x] = 0;
-    None
-}
 
-pub fn count_empty(grid: &[Vec<u8>]) -> usize {
-    let mut counter = 0;
-    for row in grid.iter() {
-        for value in row.iter() {
-            if *value == 0 {
-                counter += 1;
+        let (x, y) = match next_empty(&self.grid, &mut self.rng) {
+            Some((x, y)) => (x, y),
+            None => {
+                self.is_cut = false;
+                return self.grid.clone();
+            }
+        };
+
+        for num in 1..=9u8 {
+            if is_placeable(&self.grid, x, y, num) {
+                self.grid[y][x] = num;
+                let grid = self.grid();
+                if !self.is_cut {
+                    return grid;
+                }
+                self.grid[y][x] = 0;
             }
         }
+        self.is_cut = true;
+        self.grid.clone()
     }
-    counter
 }
 
 pub fn print_pretty_grid(grid: &[Vec<u8>]) {
@@ -116,59 +128,8 @@ pub fn print_raw_grid(grid: &[Vec<u8>]) {
     }
 }
 
-pub fn try_to_place_num(grid: &mut [Vec<u8>], x: usize, y: usize) -> bool {
-    for num in 1..=9u8 {
-        if is_placeable(grid, x, y, num) {
-            grid[y][x] = num;
-            return true;
-        }
-    }
-    false
-}
-
-pub struct Context {
-    max_iterations: usize,
-    rng: ChaCha8Rng,
-    grid: Vec<Vec<u8>>,
-    size: usize,
-    iterations: usize,
-    is_cut: bool,
-    seed: u64,
-}
-
-pub fn generate_complete_grid(ctx: &mut Context) -> Vec<Vec<u8>> {
-    ctx.rng = rng::rng_from_seed(ctx.seed);
-    ctx.iterations += 1;
-    if ctx.iterations >= ctx.max_iterations {
-        ctx.iterations = 0;
-        ctx.seed = ctx.rng.random();
-        ctx.grid = vec![vec![0; ctx.size]; ctx.size];
-    }
-
-    let (x, y) = match next_empty(&ctx.grid, &mut ctx.rng) {
-        Some((x, y)) => (x, y),
-        None => {
-            ctx.is_cut = false;
-            return ctx.grid.clone();
-        }
-    };
-
-    for num in 1..=9u8 {
-        if is_placeable(&ctx.grid, x, y, num) {
-            ctx.grid[y][x] = num;
-            let grid = generate_complete_grid(ctx);
-            if !ctx.is_cut {
-                return grid;
-            }
-            ctx.grid[y][x] = 0;
-        }
-    }
-    ctx.is_cut = true;
-    ctx.grid.clone()
-}
-
 pub fn generate(size: usize, seed: u64, max_iterations: usize) -> Vec<Vec<u8>> {
-    let mut ctx = Context {
+    let mut ctx = GridGenerator {
         rng: rng::rng_from_seed(seed),
         size,
         grid: vec![vec![0; size]; size],
@@ -178,7 +139,7 @@ pub fn generate(size: usize, seed: u64, max_iterations: usize) -> Vec<Vec<u8>> {
         iterations: 0,
     };
 
-    generate_complete_grid(&mut ctx)
+    ctx.grid()
 }
 
 pub fn solve(grid: &mut Vec<Vec<u8>>) -> bool {
@@ -204,10 +165,10 @@ pub fn solve(grid: &mut Vec<Vec<u8>>) -> bool {
 
 pub fn make_playable(grid: &[Vec<u8>], starting_numbers: usize, seed: u64) -> Vec<Vec<u8>> {
     let mut holes = Vec::new();
-    let size = grid.len();
-    let total = grid.len() * grid.len();
     let mut rng = rng::rng_from_seed(seed);
     let mut playable = grid.to_vec();
+    let size = grid.len();
+    let total = grid.len() * grid.len();
 
     while holes.len() < total - starting_numbers {
         let index = rng.random_range(0..total);
@@ -225,4 +186,16 @@ pub fn make_playable(grid: &[Vec<u8>], starting_numbers: usize, seed: u64) -> Ve
         }
     }
     playable.to_vec()
+}
+
+pub fn parse(string: &str) -> Vec<Vec<u8>> {
+    let mut grid: Vec<Vec<u8>> = Vec::new();
+    for line in string.split('\n') {
+        let mut row: Vec<u8> = Vec::new();
+        for char in line.chars() {
+            row.push(char.to_string().parse().unwrap())
+        }
+        grid.push(row);
+    }
+    grid
 }
