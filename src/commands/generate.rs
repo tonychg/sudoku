@@ -1,4 +1,4 @@
-use crate::grid;
+use crate::board;
 use crate::rng;
 use anyhow::Result;
 
@@ -23,19 +23,19 @@ pub(crate) struct GenerateArgs {
 #[tracing::instrument]
 pub(crate) fn cmd_generate(args: &GenerateArgs) -> Result<()> {
     let seed = args.seed.unwrap_or(rng::generate_seed());
-    let grid = grid::generate(args.size, seed, args.max_iterations);
-    let playable = grid::make_playable(&grid, args.starting_numbers, seed);
+    let grid = board::generate(args.size, seed, args.max_iterations);
+    let playable = board::make_playable(&grid, args.starting_numbers, seed);
 
     tracing::info!(seed);
 
     if args.raw {
-        grid::print_raw(&grid);
+        board::print_raw(&grid);
         println!();
-        grid::print_raw(&playable);
+        board::print_raw(&playable);
     } else {
-        grid::print_pretty(&grid);
+        board::print_pretty(&grid);
         println!();
-        grid::print_pretty(&playable);
+        board::print_pretty(&playable);
     }
     Ok(())
 }
