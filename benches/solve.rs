@@ -6,7 +6,8 @@ use sudoku::grid;
 
 fn solve(target: &str) {
     let mut parsed = grid::parse(target);
-    grid::solve(&mut parsed);
+    let size = parsed.len();
+    grid::solve(&mut parsed, size);
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
