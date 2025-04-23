@@ -78,7 +78,6 @@ impl GridGenerator {
                 return self.grid.clone();
             }
         };
-
         for num in 1..=9u8 {
             if is_placeable(&self.grid, x, y, num) {
                 self.grid[y][x] = num;
