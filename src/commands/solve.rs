@@ -1,4 +1,5 @@
 use crate::board;
+use crate::dfs;
 use anyhow::Result;
 use std::io;
 
@@ -46,10 +47,10 @@ fn solve_recursive(grid: &[Vec<u8>]) {
 
 fn solve_dfs(grid: &[Vec<u8>]) {
     let size = grid.len();
-    let node = board::dfs::Node::new(grid, size);
+    let node = dfs::Node::new(grid, size);
     board::print_pretty(&grid);
     println!();
-    let solutions = board::dfs::dfs(node, None);
+    let solutions = dfs::dfs(node, Some(1));
     if solutions.is_empty() {
         println!("No solution found");
     } else {

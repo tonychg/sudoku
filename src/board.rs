@@ -1,91 +1,143 @@
-mod board;
-pub mod dfs;
-mod heuristics;
+mod bitfield;
+mod generator;
+mod grid;
 
+pub use bitfield::BitFieldBoard;
+pub use grid::GridBoard;
+
+use crate::heuristics::can_be_placed;
 use crate::rng;
-use heuristics::can_be_placed;
 use itertools::Itertools;
 use rand::Rng;
 use rand::seq::SliceRandom;
-use rand_chacha::ChaCha8Rng;
+use std::fmt::Debug;
 
-fn next_empty(grid: &[Vec<u8>], y_range: &[usize], x_range: &[usize]) -> Option<(usize, usize)> {
-    for y in y_range.iter() {
-        for x in x_range.iter() {
-            if grid[*y][*x] == 0 {
-                return Some((*x, *y));
-            }
-        }
-    }
-
-    None
+pub trait Board: Send + Sync + Debug {
+    fn size(&self) -> usize;
+    fn set(&mut self, x: usize, y: usize, num: u8);
+    fn get(&self, x: usize, y: usize) -> u8;
+    fn next_empty(&self) -> Option<(usize, usize)>;
+    fn next_empty_random(&self, y_range: &[usize], x_range: &[usize]) -> Option<(usize, usize)>;
+    fn can_be_placed(&self, x: usize, y: usize, num: u8) -> bool;
 }
 
-struct GridGenerator {
-    max_iterations: usize,
-    rng: ChaCha8Rng,
-    grid: Vec<Vec<u8>>,
-    size: usize,
-    iterations: usize,
-    is_cut: bool,
-    seed: u64,
-    y_range: Vec<usize>,
-    x_range: Vec<usize>,
+pub fn parse_grid_string(sgrid: impl ToString) -> anyhow::Result<(usize, String)> {
+    let sgrid = sgrid.to_string();
+    let data = sgrid.split(":").collect::<Vec<&str>>();
+    if data.len() != 2 {
+        return Err(anyhow::anyhow!("Invalid format size:grid"));
+    }
+    let size: usize = data[0].parse()?;
+    let grid = data[1].to_string();
+    Ok((size, grid))
 }
 
-impl GridGenerator {
-    fn init(&mut self) {
-        self.rng = rng::rng_from_seed(self.seed);
-        self.x_range = (0..self.size).collect::<Vec<usize>>();
-        self.y_range = (0..self.size).collect::<Vec<usize>>();
-        self.randomize_ranges();
-    }
+#[derive(Clone, Debug)]
+pub struct Node<T> {
+    board: T,
+    visited: bool,
+}
 
-    fn randomize_ranges(&mut self) {
-        self.x_range.shuffle(&mut self.rng);
-        self.y_range.shuffle(&mut self.rng);
-    }
-
-    fn reseed_rng(&mut self) {
-        self.seed = self.rng.random();
-        self.rng = rng::rng_from_seed(self.seed);
-    }
-
-    pub fn grid(&mut self) -> Vec<Vec<u8>> {
-        if self.iterations == 0 {
-            self.init()
+impl<T> Node<T>
+where
+    T: Clone + Board,
+{
+    pub fn new(board: T) -> Self {
+        Self {
+            board,
+            visited: false,
         }
+    }
 
-        if self.iterations >= self.max_iterations {
-            self.reseed_rng();
-            self.iterations = 1;
-            self.grid = vec![vec![0; self.size]; self.size];
-        }
+    pub fn adjacent_nodes(&mut self, y_range: &[usize], x_range: &[usize]) -> Vec<Node<T>> {
+        let mut neighbors = Vec::new();
 
-        self.iterations += 1;
-
-        self.randomize_ranges();
-
-        let (x, y) = match next_empty(&self.grid, &self.y_range, &self.x_range) {
-            Some((x, y)) => (x, y),
-            None => {
-                self.is_cut = false;
-                return self.grid.clone();
-            }
+        let position = if y_range.is_empty() && y_range.is_empty() {
+            self.board.next_empty()
+        } else {
+            self.board.next_empty_random(y_range, x_range)
         };
-        for num in 1..=9u8 {
-            if can_be_placed(&self.grid, self.size, x, y, num) {
-                self.grid[y][x] = num;
-                let grid = self.grid();
-                if !self.is_cut {
-                    return grid;
+
+        if let Some((x, y)) = position {
+            for num in 1..=9u8 {
+                if self.board.can_be_placed(x, y, num) {
+                    let mut next_board = self.board.clone();
+                    next_board.set(x, y, num);
+                    neighbors.push(Self::new(next_board));
                 }
-                self.grid[y][x] = 0;
             }
         }
-        self.is_cut = true;
-        self.grid.clone()
+        self.visited = true;
+        neighbors
     }
+}
+
+pub fn solve_dfs<T: Board + Clone>(board: T, seed: Option<u64>, limit: Option<usize>) -> Vec<T> {
+    let mut count: usize = 0;
+    let mut stack: Vec<Node<T>> = Vec::new();
+    let mut solutions: Vec<T> = Vec::new();
+    let root = Node::new(board.clone());
+    let mut x_range = Vec::new();
+    let mut y_range = Vec::new();
+
+    if let Some(seed) = seed {
+        let mut rng = rng::rng_from_seed(seed);
+        x_range = (0..board.size()).collect::<Vec<usize>>();
+        y_range = x_range.clone();
+        x_range.shuffle(&mut rng);
+        y_range.shuffle(&mut rng);
+    }
+
+    stack.push(root);
+
+    while let Some(mut node) = stack.pop() {
+        if let Some(limit) = limit {
+            if count >= limit {
+                return solutions;
+            }
+        }
+        if node.board.next_empty().is_none() {
+            count += 1;
+            solutions.push(node.board.clone());
+        }
+        if !node.visited {
+            for node in node.adjacent_nodes(&y_range, &x_range) {
+                if !node.visited {
+                    stack.push(node.clone())
+                }
+            }
+        }
+    }
+
+    solutions
+}
+
+pub fn to_pretty_grid(board: impl Board) -> String {
+    let size = board.size();
+    let line = (0..size * 2 + 7)
+        .map(|i| if i % 8 == 0 { "+" } else { "-" })
+        .fold(String::new(), |acc, c| acc + c);
+    let mut output = String::new();
+    for y in 0..size {
+        for x in 0..size {
+            let num = board.get(x, y);
+            let elem = if y == 0 && x == 0 {
+                format!("{}\n| {}", line, num)
+            } else if !(x != size - 1 || y <= 1 && y != size - 1 || y % 3 != 2 && y != size - 1) {
+                format!(" {} |\n{}\n", num, line)
+            } else if x > 1 && (x - 1) % 3 == 2 {
+                format!(" | {}", num)
+            } else if x == size - 1 {
+                format!(" {} |\n", num)
+            } else if x == 0 {
+                format!("| {}", num)
+            } else {
+                format!(" {}", num)
+            };
+            output.push_str(&elem);
+        }
+    }
+    output
 }
 
 pub fn print_pretty(grid: &[Vec<u8>]) {
@@ -120,22 +172,6 @@ pub fn print_raw(grid: &[Vec<u8>]) {
         }
         println!()
     }
-}
-
-pub fn generate(size: usize, seed: u64, max_iterations: usize) -> Vec<Vec<u8>> {
-    let mut ctx = GridGenerator {
-        rng: rng::rng_from_seed(seed),
-        size,
-        grid: vec![vec![0; size]; size],
-        is_cut: false,
-        max_iterations,
-        seed,
-        iterations: 0,
-        x_range: Vec::new(),
-        y_range: Vec::new(),
-    };
-
-    ctx.grid()
 }
 
 pub fn solve(grid: &mut Vec<Vec<u8>>, size: usize) -> bool {

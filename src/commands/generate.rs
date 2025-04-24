@@ -1,4 +1,5 @@
 use crate::board;
+use crate::board::solve_dfs;
 use crate::rng;
 use anyhow::Result;
 
@@ -22,20 +23,23 @@ pub(crate) struct GenerateArgs {
 
 #[tracing::instrument]
 pub(crate) fn cmd_generate(args: &GenerateArgs) -> Result<()> {
-    let seed = args.seed.unwrap_or(rng::generate_seed());
-    let grid = board::generate(args.size, seed, args.max_iterations);
-    let playable = board::make_playable(&grid, args.starting_numbers, seed);
+    let board = board::GridBoard::new(args.size);
+    let seed = match args.seed {
+        Some(seed) => seed,
+        None => rng::generate_seed(),
+    };
+    let result = solve_dfs(board, Some(seed), Some(1));
 
-    tracing::info!(seed);
+    if result.is_empty() {
+        return Err(anyhow::anyhow!("Failed to generate board"));
+    }
+    let board = result[0].clone();
 
     if args.raw {
-        board::print_raw(&grid);
-        println!();
-        board::print_raw(&playable);
+        println!("{}", board);
     } else {
-        board::print_pretty(&grid);
-        println!();
-        board::print_pretty(&playable);
+        println!("{}", board::to_pretty_grid(board))
     }
+
     Ok(())
 }
