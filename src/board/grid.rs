@@ -2,7 +2,7 @@ use super::Board;
 use super::parse_grid_string;
 use std::fmt::Display;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct GridBoard {
     size: usize,
     grid: Vec<u8>,
@@ -18,6 +18,24 @@ impl GridBoard {
             board.set(x, y, num);
         }
         Ok(board)
+    }
+
+    pub fn completed(&self) -> bool {
+        self.next_empty().is_none()
+    }
+
+    pub fn neighbors(&self) -> Vec<GridBoard> {
+        let mut neighbors = Vec::new();
+        if let Some((x, y)) = self.next_empty() {
+            for num in 1..=9u8 {
+                if self.can_be_placed(x, y, num) {
+                    let mut next_board = self.clone();
+                    next_board.set(x, y, num);
+                    neighbors.push(next_board);
+                }
+            }
+        }
+        neighbors
     }
 
     fn index(&self, x: usize, y: usize) -> usize {

@@ -2,6 +2,7 @@ mod bitfield;
 mod generator;
 mod grid;
 
+pub use bitfield::BitField;
 pub use bitfield::BitFieldBoard;
 pub use generator::BoardGenerator;
 pub use grid::GridBoard;

@@ -1,7 +1,10 @@
 use crate::board::Board;
 use crate::rng;
 use rand::seq::SliceRandom;
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
+use std::fmt::Debug;
+use std::hash::Hash;
+use std::iter;
 
 #[derive(Clone, Debug)]
 pub struct Node<T> {
@@ -41,6 +44,67 @@ where
         self.visited = true;
         neighbors
     }
+}
+
+pub fn dfs<T, ID>(
+    start: Vec<T>,
+    id_fn: impl Fn(&T) -> ID,
+    complete_fn: impl Fn(&T) -> bool,
+    neighbors_fn: impl Fn(T) -> Vec<T>,
+) -> Vec<T>
+where
+    ID: Hash + Eq + Debug,
+    T: Clone,
+{
+    let mut stack = VecDeque::from(start);
+    let mut result = Vec::new();
+    let mut visited: HashSet<ID> = HashSet::new();
+
+    while let Some(node) = stack.pop_front() {
+        if complete_fn(&node) {
+            result.push(node.clone());
+        }
+        let id = id_fn(&node);
+        if visited.contains(&id) {
+            continue;
+        }
+        for node in neighbors_fn(node) {
+            stack.push_front(node);
+        }
+        visited.insert(id);
+    }
+    result
+}
+
+pub fn dfs_iter<T>(
+    start: Vec<T>,
+    complete_fn: impl Fn(&T) -> bool,
+    neighbors_fn: impl Fn(&T) -> Vec<T>,
+) -> impl Iterator<Item = T>
+where
+    T: Hash + Eq + Clone + Debug,
+{
+    let mut stack = VecDeque::from(start);
+    let mut visited: HashSet<T> = HashSet::new();
+
+    iter::from_fn(move || {
+        loop {
+            let c = match stack.pop_front() {
+                Some(node) => node,
+                None => return None,
+            };
+            if complete_fn(&c) {
+                return Some(c);
+            }
+            if visited.contains(&c) {
+                continue;
+            }
+            for node in neighbors_fn(&c) {
+                stack.push_front(node);
+            }
+            visited.insert(c);
+        }
+    })
 }
 
 pub fn solve_dfs<T: Board + Clone>(

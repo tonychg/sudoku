@@ -1,6 +1,6 @@
 use crate::board::GridBoard;
 use crate::board::to_pretty_grid;
-use crate::dfs::solve_dfs;
+use crate::dfs;
 use anyhow::Result;
 use std::io;
 
@@ -22,13 +22,9 @@ pub fn cmd_solve(args: &SolveArgs) -> Result<()> {
     if args.stdin {
         for line in io::stdin().lines().map_while(Result::ok) {
             let board = GridBoard::from_str(line)?;
-            let solutions = solve_dfs(board, None, args.limit, args.max_iterations);
-            if solutions.is_empty() {
-                tracing::info!("No solutions");
-            } else {
-                for solution in solutions.iter() {
-                    println!("{}", to_pretty_grid(solution));
-                }
+            println!("{}", to_pretty_grid(&board));
+            for solution in dfs::dfs_iter(vec![board], |b| b.completed(), |b| b.neighbors()) {
+                println!("{}", to_pretty_grid(&solution));
             }
         }
     }

@@ -2,7 +2,33 @@ use super::Board;
 use super::parse_grid_string;
 use std::fmt::Display;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
+pub struct BitField {
+    size: usize,
+    field: u128,
+}
+
+impl BitField {
+    pub fn new(size: usize) -> Self {
+        Self { size, field: 0 }
+    }
+
+    pub fn set(&mut self, index: usize, num: u8) {
+        self.field |= (1 << (num + 1) as u128) << index * self.size;
+    }
+
+    pub fn get(&mut self, index: usize) -> u8 {
+        (self.field >> (index * self.size) & 0xff) as u8
+    }
+}
+
+impl Display for BitField {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#081b}", self.field)
+    }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct BitFieldBoard {
     size: usize,
     grid: Vec<u8>,
@@ -17,8 +43,10 @@ impl BitFieldBoard {
         let mut board = Self::new(size);
         for (index, num) in grid.chars().enumerate() {
             let (x, y) = board.xy(index);
-            let num = num as u8;
-            board.set(x, y, num);
+            let num = num.to_string().parse()?;
+            if num != 0 {
+                board.set(x, y, num);
+            }
         }
         Ok(board)
     }
@@ -29,6 +57,24 @@ impl BitFieldBoard {
 
     fn xy(&self, index: usize) -> (usize, usize) {
         (index % self.size, index / self.size)
+    }
+
+    pub fn completed(&self) -> bool {
+        self.next_empty().is_none()
+    }
+
+    pub fn neighbors(&self) -> Vec<BitFieldBoard> {
+        let mut neighbors = Vec::new();
+        if let Some((x, y)) = self.next_empty() {
+            for num in 1..=9u8 {
+                if self.can_be_placed(x, y, num) {
+                    let mut next_board = self.clone();
+                    next_board.set(x, y, num);
+                    neighbors.push(next_board);
+                }
+            }
+        }
+        neighbors
     }
 }
 
@@ -67,9 +113,6 @@ impl Board for BitFieldBoard {
         None
     }
 
-    // 0b111111111111111111111111111111111111111111111111111111111111111111111111111111100000000000
-    // 0b111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
-    // 000000000
     fn set(&mut self, x: usize, y: usize, num: u8) {
         let third = self.size / 3;
         let index = self.index(x, y);
