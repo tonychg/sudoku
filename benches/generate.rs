@@ -2,7 +2,7 @@ use criterion::Criterion;
 use criterion::criterion_group;
 use criterion::criterion_main;
 use std::hint::black_box;
-use sudoku::grid::generate;
+use sudoku::board::generate;
 
 fn generate_boards(seed: u64, s: usize, max_i: usize) -> Vec<Vec<u8>> {
     generate(s, seed, max_i)

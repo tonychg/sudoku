@@ -1,5 +1,10 @@
-use crate::grid;
-use crate::rng;
+use std::path::PathBuf;
+
+use super::BoardBackend;
+use crate::board::BitFieldBoard;
+use crate::board::BoardGenerator;
+use crate::board::GridBoard;
+use crate::board::to_pretty_grid;
 use anyhow::Result;
 
 #[derive(clap::Args, Clone, Debug)]
@@ -7,7 +12,7 @@ pub(crate) struct GenerateArgs {
     /// Specify seed of generated board
     seed: Option<u64>,
     /// Maximum iterations of complete board recursion
-    #[arg(short, long, default_value_t = 200)]
+    #[arg(short, long, default_value_t = 2000)]
     max_iterations: usize,
     /// Size of board
     #[arg(short, long, default_value_t = 9)]
@@ -18,24 +23,46 @@ pub(crate) struct GenerateArgs {
     /// Use raw format to print the generated board
     #[arg(short = 'r', long, default_value_t = false)]
     raw: bool,
+    /// Select board storage backend
+    #[arg(short = 'b', long, value_enum, default_value_t = BoardBackend::BitField)]
+    backend: BoardBackend,
+    /// Path to destination directory
+    #[arg(short = 'd', long)]
+    destination: Option<PathBuf>,
 }
 
 #[tracing::instrument]
 pub(crate) fn cmd_generate(args: &GenerateArgs) -> Result<()> {
-    let seed = args.seed.unwrap_or(rng::generate_seed());
-    let grid = grid::generate(args.size, seed, args.max_iterations);
-    let playable = grid::make_playable(&grid, args.starting_numbers, seed);
+    let generator = BoardGenerator::new(
+        args.size,
+        args.seed,
+        args.starting_numbers,
+        args.max_iterations,
+    );
+    match args.backend {
+        BoardBackend::BitField => {
+            let board = generator.generate::<BitFieldBoard>()?;
+            let playable = generator.make_playable(&board);
+            if args.raw {
+                println!("{}", board);
+                println!("{}", playable);
+            } else {
+                println!("{}", to_pretty_grid(&board));
+                println!("{}", to_pretty_grid(&playable));
+            }
+        }
+        BoardBackend::Grid => {
+            let board = generator.generate::<GridBoard>()?;
+            let playable = generator.make_playable(&board);
+            if args.raw {
+                println!("{}", board);
+                println!("{}", playable);
+            } else {
+                println!("{}", to_pretty_grid(&board));
+                println!("{}", to_pretty_grid(&playable));
+            }
+        }
+    };
 
-    tracing::info!(seed);
-
-    if args.raw {
-        grid::print_raw(&grid);
-        println!();
-        grid::print_raw(&playable);
-    } else {
-        grid::print_pretty(&grid);
-        println!();
-        grid::print_pretty(&playable);
-    }
     Ok(())
 }
