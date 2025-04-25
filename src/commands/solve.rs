@@ -1,3 +1,5 @@
+use super::BoardBackend;
+use crate::board::BitFieldBoard;
 use crate::board::GridBoard;
 use crate::board::to_pretty_grid;
 use crate::dfs;
@@ -15,17 +17,41 @@ pub(crate) struct SolveArgs {
     /// Limit number of solutions
     #[arg(short, long)]
     limit: Option<usize>,
+    /// Select board storage backend
+    #[arg(short = 'b', long, value_enum, default_value_t = BoardBackend::Grid)]
+    backend: BoardBackend,
 }
 
 #[tracing::instrument]
 pub fn cmd_solve(args: &SolveArgs) -> Result<()> {
     if args.stdin {
         for line in io::stdin().lines().map_while(Result::ok) {
-            let board = GridBoard::from_str(line)?;
-            println!("{}", to_pretty_grid(&board));
-            for solution in dfs::dfs_iter(vec![board], |b| b.completed(), |b| b.neighbors()) {
-                println!("{}", to_pretty_grid(&solution));
-            }
+            match args.backend {
+                BoardBackend::Grid => {
+                    for (index, solution) in dfs::dfs(
+                        vec![GridBoard::from_str(line)?],
+                        |b| b.id(),
+                        |b| b.completed(),
+                        |b| b.neighbors(),
+                    )
+                    .enumerate()
+                    {
+                        println!("{}\n{}", index, to_pretty_grid(&solution));
+                    }
+                }
+                BoardBackend::BitField => {
+                    for (index, solution) in dfs::dfs(
+                        vec![BitFieldBoard::from_str(line)?],
+                        |b| b.id(),
+                        |b| b.completed(),
+                        |b| b.neighbors(),
+                    )
+                    .enumerate()
+                    {
+                        println!("{}\n{}", index, to_pretty_grid(&solution));
+                    }
+                }
+            };
         }
     }
     Ok(())

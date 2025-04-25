@@ -2,80 +2,29 @@ use criterion::Criterion;
 use criterion::criterion_group;
 use criterion::criterion_main;
 use std::hint::black_box;
-use sudoku::board;
+use sudoku::board::GridBoard;
+use sudoku::dfs::dfs;
 
-fn solve_recursive(target: &str) {
-    let mut parsed = board::parse(target);
-    let size = parsed.len();
-    board::solve(&mut parsed, size);
-}
-
-fn solve_dfs(target: &str) {
-    let parsed = board::parse(target);
-    let size = parsed.len();
-    let root = board::dfs::Node::new(&parsed, size);
-    board::dfs::dfs(root, None);
+fn solve_id(target: &str) -> usize {
+    let parsed = GridBoard::from_str(target).unwrap();
+    dfs(
+        vec![parsed],
+        |b| b.id(),
+        |b| b.completed(),
+        |b| b.neighbors(),
+    )
+    .count()
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("solve recursive starting_numbers=17", |b| {
+    c.bench_function("solve dfs id starting_numbers=26", |b| {
         b.iter(|| {
-            solve_recursive(black_box(
-                r#"000004350
-500009000
-000000000
-006730000
-309000001
-070090036
-050000003
-460002005
-701000008"#,
-            ))
+            solve_id(black_box("9:13461536571700027082:000006010500000080000870302000000009000960700605000103002007050000403000804600000"))
         })
     });
-    c.bench_function("solve dfs starting_numbers=17", |b| {
+    c.bench_function("solve dfs id starting_numbers=26", |b| {
         b.iter(|| {
-            solve_dfs(black_box(
-                r#"000004350
-500009000
-000000000
-006730000
-309000001
-070090036
-050000003
-460002005
-701000008"#,
-            ))
-        })
-    });
-    c.bench_function("solve recursive starting_numbers=24", |b| {
-        b.iter(|| {
-            solve_recursive(black_box(
-                r#"000000780
-000970000
-050000020
-580007900
-600000000
-000608010
-000000000
-090000000
-006000008"#,
-            ))
-        })
-    });
-    c.bench_function("solve dfs starting_numbers=24", |b| {
-        b.iter(|| {
-            solve_dfs(black_box(
-                r#"000000780
-000970000
-050000020
-580007900
-600000000
-000608010
-000000000
-090000000
-006000008"#,
-            ))
+            solve_id(black_box("9:4498377688275560302:307400100006023800000000030000000008050069000020030001200000490000000006409106000"))
         })
     });
 }

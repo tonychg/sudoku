@@ -9,8 +9,9 @@ pub use grid::GridBoard;
 use std::fmt::Debug;
 
 pub trait Board: Send + Sync + Debug {
-    fn new(size: usize) -> Self;
+    fn new(size: usize, seed: u64) -> Self;
     fn size(&self) -> usize;
+    fn seed(&self) -> u64;
     fn set(&mut self, x: usize, y: usize, num: u8);
     fn get(&self, x: usize, y: usize) -> u8;
     fn next_empty(&self) -> Option<(usize, usize)>;
@@ -18,15 +19,16 @@ pub trait Board: Send + Sync + Debug {
     fn can_be_placed(&self, x: usize, y: usize, num: u8) -> bool;
 }
 
-pub fn parse_grid_string(sgrid: impl ToString) -> anyhow::Result<(usize, String)> {
+pub fn parse_grid_string(sgrid: impl ToString) -> anyhow::Result<(usize, u64, String)> {
     let sgrid = sgrid.to_string();
     let data = sgrid.split(":").collect::<Vec<&str>>();
-    if data.len() != 2 {
-        return Err(anyhow::anyhow!("Invalid format size:grid"));
+    if data.len() != 3 {
+        return Err(anyhow::anyhow!("Invalid format size:seed:grid"));
     }
     let size: usize = data[0].parse()?;
-    let grid = data[1].to_string();
-    Ok((size, grid))
+    let seed: u64 = data[1].parse()?;
+    let grid = data[2].to_string();
+    Ok((size, seed, grid))
 }
 
 pub fn to_pretty_grid(board: &impl Board) -> String {

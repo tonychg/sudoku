@@ -7,8 +7,8 @@ use clap::Subcommand;
 
 #[derive(clap::ValueEnum, Default, Clone, Debug)]
 pub enum BoardBackend {
-    Grid,
     #[default]
+    Grid,
     BitField,
 }
 

@@ -1,5 +1,7 @@
 use super::Board;
-use crate::dfs::solve_dfs;
+use super::GridBoard;
+use crate::dfs::dfs;
+use crate::dfs::dfs_with_max_depth;
 use crate::rng;
 use anyhow::Result;
 use rand::Rng;
@@ -8,16 +10,11 @@ pub struct BoardGenerator {
     seed: u64,
     size: usize,
     starting_numbers: usize,
-    max_iterations: usize,
+    max_depth: usize,
 }
 
 impl BoardGenerator {
-    pub fn new(
-        size: usize,
-        seed: Option<u64>,
-        starting_numbers: usize,
-        max_iterations: usize,
-    ) -> Self {
+    pub fn new(size: usize, seed: Option<u64>, starting_numbers: usize, max_depth: usize) -> Self {
         Self {
             seed: match seed {
                 Some(seed) => seed,
@@ -25,16 +22,15 @@ impl BoardGenerator {
             },
             starting_numbers,
             size,
-            max_iterations,
+            max_depth,
         }
     }
 
-    pub fn make_playable<T: Clone + Board>(&self, board: &T) -> T {
+    pub fn make_playable(&self, board: &GridBoard) -> GridBoard {
         let mut holes = Vec::new();
         let mut rng = rng::rng_from_seed(self.seed);
-        let mut playable = board.clone();
+        let mut playable = GridBoard::from_board(&board);
         let total = self.size * self.size;
-
         while holes.len() < total - self.starting_numbers {
             let index = rng.random_range(0..total);
             let (x, y) = (index % self.size, index / self.size);
@@ -43,25 +39,42 @@ impl BoardGenerator {
             }
             holes.push((x, y, playable.get(x, y)));
             playable.set(x, y, 0);
-            let next = playable.clone();
-            let solutions = solve_dfs(next, None, Some(2), None);
-            if solutions.len() != 1 {
+            let next = GridBoard::from_board(&playable);
+            let mut counter = 0;
+            for _ in dfs(vec![next], |b| b.id(), |b| b.completed(), |b| b.neighbors()) {
+                counter += 1;
+                if counter == 2 {
+                    break;
+                }
+            }
+            if counter != 1 {
                 if let Some((x, y, num)) = holes.pop() {
                     playable.set(x, y, num);
                 }
+            } else {
+                tracing::debug!("Current starting numbers {}", total - holes.len());
             }
         }
-
         playable
     }
 
-    pub fn generate<T: Clone + Board>(&self) -> Result<T> {
-        let empty = T::new(self.size);
-        let boards = solve_dfs(empty, Some(self.seed), Some(1), Some(self.max_iterations));
-        tracing::info!("Complete board generated with seed {}", self.seed);
-        if boards.is_empty() {
-            return Err(anyhow::anyhow!("Failed to generate board"));
+    pub fn generate(&self) -> Result<GridBoard> {
+        let empty = GridBoard::new(self.size, self.seed);
+        tracing::debug!(size = self.size, seed = self.seed, "Generate a new board");
+        for (index, board) in dfs_with_max_depth(
+            vec![empty],
+            |b| b.id(),
+            |b| b.completed(),
+            |b| b.random_neighbors(),
+            self.max_depth,
+        )
+        .enumerate()
+        {
+            if index == 0 {
+                tracing::debug!("Complete board generated");
+                return Ok(board);
+            }
         }
-        Ok(boards[0].clone())
+        Err(anyhow::anyhow!("Failed to generate board"))
     }
 }

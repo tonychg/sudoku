@@ -1,6 +1,7 @@
 use super::Board;
 use super::parse_grid_string;
 use std::fmt::Display;
+use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub struct BitField {
@@ -28,9 +29,11 @@ impl Display for BitField {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct BitFieldBoard {
+    id: Uuid,
     size: usize,
+    seed: u64,
     grid: Vec<u8>,
     rows: u128,
     cols: u128,
@@ -38,9 +41,13 @@ pub struct BitFieldBoard {
 }
 
 impl BitFieldBoard {
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
     pub fn from_str(sboard: impl ToString) -> anyhow::Result<Self> {
-        let (size, grid) = parse_grid_string(sboard)?;
-        let mut board = Self::new(size);
+        let (size, seed, grid) = parse_grid_string(sboard)?;
+        let mut board = Self::new(size, seed);
         for (index, num) in grid.chars().enumerate() {
             let (x, y) = board.xy(index);
             let num = num.to_string().parse()?;
@@ -49,6 +56,18 @@ impl BitFieldBoard {
             }
         }
         Ok(board)
+    }
+
+    pub fn from_board(board: &BitFieldBoard) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            size: board.size,
+            seed: board.seed,
+            grid: board.grid.clone(),
+            rows: board.rows,
+            cols: board.cols,
+            quads: board.quads,
+        }
     }
 
     fn index(&self, x: usize, y: usize) -> usize {
@@ -68,7 +87,7 @@ impl BitFieldBoard {
         if let Some((x, y)) = self.next_empty() {
             for num in 1..=9u8 {
                 if self.can_be_placed(x, y, num) {
-                    let mut next_board = self.clone();
+                    let mut next_board = Self::from_board(self);
                     next_board.set(x, y, num);
                     neighbors.push(next_board);
                 }
@@ -79,14 +98,20 @@ impl BitFieldBoard {
 }
 
 impl Board for BitFieldBoard {
-    fn new(size: usize) -> Self {
+    fn new(size: usize, seed: u64) -> Self {
         Self {
+            id: Uuid::new_v4(),
             size,
+            seed,
             rows: 0,
             cols: 0,
             quads: 0,
             grid: vec![0; size * size],
         }
+    }
+
+    fn seed(&self) -> u64 {
+        self.seed
     }
 
     fn size(&self) -> usize {
@@ -146,6 +171,6 @@ impl Display for BitFieldBoard {
             .map(|num| format!("{}", num))
             .collect::<Vec<String>>()
             .join("");
-        write!(f, "{}:{}", self.size, grid_line)
+        write!(f, "{}:{}:{}", self.size, self.seed, grid_line)
     }
 }

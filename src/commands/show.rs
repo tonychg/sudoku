@@ -1,6 +1,6 @@
+use crate::board::{GridBoard, to_pretty_grid};
 use std::io;
 
-use crate::board::{GridBoard, to_pretty_grid};
 #[derive(clap::Args, Clone, Debug)]
 pub(crate) struct ShowArgs {
     /// Read board from stdin

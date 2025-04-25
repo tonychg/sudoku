@@ -1,17 +1,28 @@
 use super::Board;
 use super::parse_grid_string;
+use crate::rng;
+use rand::seq::SliceRandom;
 use std::fmt::Display;
+use uuid::Uuid;
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct GridBoard {
+    id: Uuid,
     size: usize,
     grid: Vec<u8>,
+    seed: u64,
+    x_range: Vec<usize>,
+    y_range: Vec<usize>,
 }
 
 impl GridBoard {
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
     pub fn from_str(sboard: impl ToString) -> anyhow::Result<Self> {
-        let (size, grid) = parse_grid_string(sboard)?;
-        let mut board = Self::new(size);
+        let (size, seed, grid) = parse_grid_string(sboard)?;
+        let mut board = Self::new(size, seed);
         for (index, num) in grid.chars().enumerate() {
             let (x, y) = board.xy(index);
             let num: u8 = num.to_string().parse()?;
@@ -20,16 +31,41 @@ impl GridBoard {
         Ok(board)
     }
 
-    pub fn completed(&self) -> bool {
-        self.next_empty().is_none()
+    pub fn from_board(board: &GridBoard) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            size: board.size,
+            seed: board.seed,
+            grid: board.grid.clone(),
+            x_range: board.x_range.clone(),
+            y_range: board.y_range.clone(),
+        }
     }
 
-    pub fn neighbors(&self) -> Vec<GridBoard> {
+    pub fn completed(&self) -> bool {
+        !self.next_empty().is_some()
+    }
+
+    pub fn random_neighbors(&self) -> Vec<Self> {
+        let mut neighbors = Vec::new();
+        if let Some((x, y)) = self.next_empty_random(&self.y_range, &self.x_range) {
+            for num in 1..=9u8 {
+                if self.can_be_placed(x, y, num) {
+                    let mut next_board = Self::from_board(self);
+                    next_board.set(x, y, num);
+                    neighbors.push(next_board);
+                }
+            }
+        }
+        neighbors
+    }
+
+    pub fn neighbors(&self) -> Vec<Self> {
         let mut neighbors = Vec::new();
         if let Some((x, y)) = self.next_empty() {
             for num in 1..=9u8 {
                 if self.can_be_placed(x, y, num) {
-                    let mut next_board = self.clone();
+                    let mut next_board = Self::from_board(self);
                     next_board.set(x, y, num);
                     neighbors.push(next_board);
                 }
@@ -78,11 +114,26 @@ impl GridBoard {
 }
 
 impl Board for GridBoard {
-    fn new(size: usize) -> Self {
+    fn new(size: usize, seed: u64) -> Self {
+        let mut y_range = (0..size).collect::<Vec<usize>>();
+        let mut x_range = y_range.clone();
+        let mut rng = rng::rng_from_seed(seed);
+
+        x_range.shuffle(&mut rng);
+        y_range.shuffle(&mut rng);
+
         Self {
+            id: Uuid::new_v4(),
             size,
+            seed,
             grid: vec![0; size * size],
+            y_range,
+            x_range,
         }
+    }
+
+    fn seed(&self) -> u64 {
+        self.seed
     }
 
     fn size(&self) -> usize {
@@ -132,6 +183,6 @@ impl Display for GridBoard {
             .map(|num| format!("{}", num))
             .collect::<Vec<String>>()
             .join("");
-        write!(f, "{}:{}", self.size, grid_line)
+        write!(f, "{}:{}:{}", self.size, self.seed, grid_line)
     }
 }
