@@ -12,17 +12,7 @@ pub struct BitFieldBoard {
 }
 
 impl BitFieldBoard {
-    pub fn new(size: usize) -> Self {
-        Self {
-            size,
-            rows: 0,
-            cols: 0,
-            quads: 0,
-            grid: vec![0; size * size],
-        }
-    }
-
-    fn from_str(sboard: impl ToString) -> anyhow::Result<Self> {
+    pub fn from_str(sboard: impl ToString) -> anyhow::Result<Self> {
         let (size, grid) = parse_grid_string(sboard)?;
         let mut board = Self::new(size);
         for (index, num) in grid.chars().enumerate() {
@@ -43,12 +33,29 @@ impl BitFieldBoard {
 }
 
 impl Board for BitFieldBoard {
+    fn new(size: usize) -> Self {
+        Self {
+            size,
+            rows: 0,
+            cols: 0,
+            quads: 0,
+            grid: vec![0; size * size],
+        }
+    }
+
     fn size(&self) -> usize {
         self.size
     }
 
     fn next_empty_random(&self, y_range: &[usize], x_range: &[usize]) -> Option<(usize, usize)> {
-        todo!()
+        for y in y_range {
+            for x in x_range {
+                if self.get(*x, *y) == 0 {
+                    return Some((*x, *y));
+                }
+            }
+        }
+        None
     }
 
     fn next_empty(&self) -> Option<(usize, usize)> {
@@ -60,13 +67,20 @@ impl Board for BitFieldBoard {
         None
     }
 
+    // 0b111111111111111111111111111111111111111111111111111111111111111111111111111111100000000000
+    // 0b111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
+    // 000000000
     fn set(&mut self, x: usize, y: usize, num: u8) {
         let third = self.size / 3;
         let index = self.index(x, y);
-        self.rows |= 1 << (x * self.size + num as usize);
-        self.cols |= 1 << (y * self.size + num as usize);
-        self.quads |= 1 << ((y / third * third + x / third) * self.size + num as usize);
         self.grid[index] = num;
+        let num = 1 << (num + 1) as u128;
+        self.rows |= num << (y * self.size);
+        self.cols |= num << (x * self.size);
+        self.quads |= num << ((y / third * third + x / third) * self.size);
+        tracing::debug!("rows={:b}", self.rows);
+        tracing::debug!("cols={:b}", self.cols);
+        tracing::debug!("quads={:b}", self.quads);
     }
 
     fn get(&self, x: usize, y: usize) -> u8 {
@@ -76,7 +90,7 @@ impl Board for BitFieldBoard {
     fn can_be_placed(&self, x: usize, y: usize, num: u8) -> bool {
         let b = (y / 3) * 3 + (x / 3);
         let mask = (self.rows >> (y * 9)) | (self.cols >> (x * 9)) | (self.quads >> (b * 9));
-        let mask_num = 1 << num;
+        let mask_num = 1 << (num + 1);
         (mask & mask_num) == 0
     }
 }

@@ -1,62 +1,36 @@
-use crate::board;
-use crate::dfs;
+use crate::board::GridBoard;
+use crate::board::to_pretty_grid;
+use crate::dfs::solve_dfs;
 use anyhow::Result;
 use std::io;
 
-#[derive(clap::ValueEnum, Default, Debug, Clone)]
-pub enum Solver {
-    #[default]
-    Recursive,
-    Dfs,
-}
-
 #[derive(clap::Args, Clone, Debug)]
 pub(crate) struct SolveArgs {
+    /// Read board from stdin
     #[arg(short, long, default_value_t = true)]
     stdin: bool,
-    #[arg(short = 'S', long, value_enum, default_value_t = Solver::Recursive)]
-    solver: Solver,
+    /// Maximum iterations of complete board recursion
+    #[arg(short, long)]
+    max_iterations: Option<usize>,
+    /// Limit number of solutions
+    #[arg(short, long)]
+    limit: Option<usize>,
 }
 
 #[tracing::instrument]
 pub fn cmd_solve(args: &SolveArgs) -> Result<()> {
-    let mut buffer = String::new();
     if args.stdin {
-        buffer = io::stdin()
-            .lines()
-            .map_while(Result::ok)
-            .collect::<Vec<String>>()
-            .join("\n");
-    }
-    let mut grid = board::parse(&buffer);
-    match args.solver {
-        Solver::Recursive => solve_recursive(&mut grid),
-        Solver::Dfs => solve_dfs(&mut grid),
+        for line in io::stdin().lines().map_while(Result::ok) {
+            let board = GridBoard::from_str(line)?;
+            let solutions = solve_dfs(board, None, args.limit, args.max_iterations);
+            if solutions.is_empty() {
+                tracing::info!("No solutions");
+            } else {
+                for solution in solutions.iter() {
+                    println!("{}", to_pretty_grid(solution));
+                }
+            }
+        }
     }
     Ok(())
-}
-
-fn solve_recursive(grid: &[Vec<u8>]) {
-    let size = grid.len();
-    let mut grid = grid.to_vec();
-    board::print_pretty(&grid);
-    println!();
-    board::solve(&mut grid, size);
-    board::print_pretty(&grid);
-}
-
-fn solve_dfs(grid: &[Vec<u8>]) {
-    let size = grid.len();
-    let node = dfs::Node::new(grid, size);
-    board::print_pretty(&grid);
-    println!();
-    let solutions = dfs::dfs(node, Some(1));
-    if solutions.is_empty() {
-        println!("No solution found");
-    } else {
-        for solution in solutions.iter() {
-            board::print_pretty(&solution.grid);
-        }
-        println!("Found {} solutions", solutions.len());
-    }
 }

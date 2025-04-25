@@ -9,19 +9,12 @@ pub struct GridBoard {
 }
 
 impl GridBoard {
-    pub fn new(size: usize) -> Self {
-        Self {
-            size,
-            grid: vec![0; size * size],
-        }
-    }
-
-    fn from_str(sboard: impl ToString) -> anyhow::Result<Self> {
+    pub fn from_str(sboard: impl ToString) -> anyhow::Result<Self> {
         let (size, grid) = parse_grid_string(sboard)?;
         let mut board = Self::new(size);
         for (index, num) in grid.chars().enumerate() {
             let (x, y) = board.xy(index);
-            let num = num as u8;
+            let num: u8 = num.to_string().parse()?;
             board.set(x, y, num);
         }
         Ok(board)
@@ -67,6 +60,13 @@ impl GridBoard {
 }
 
 impl Board for GridBoard {
+    fn new(size: usize) -> Self {
+        Self {
+            size,
+            grid: vec![0; size * size],
+        }
+    }
+
     fn size(&self) -> usize {
         self.size
     }

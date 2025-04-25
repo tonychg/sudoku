@@ -1,61 +1,102 @@
-use super::heuristics;
+use crate::board::Board;
+use crate::rng;
+use rand::seq::SliceRandom;
+use std::collections::VecDeque;
 
-#[derive(Debug, Clone)]
-pub struct Node {
-    pub grid: Vec<Vec<u8>>,
-    pub size: usize,
-    pub visited: bool,
-    pub neighbors: Vec<Node>,
+#[derive(Clone, Debug)]
+pub struct Node<T> {
+    board: T,
+    visited: bool,
 }
 
-impl Node {
-    pub fn new(grid: &[Vec<u8>], size: usize) -> Self {
+impl<T> Node<T>
+where
+    T: Clone + Board,
+{
+    pub fn new(board: T) -> Self {
         Self {
-            grid: grid.to_vec(),
-            size,
+            board,
             visited: false,
-            neighbors: Vec::new(),
         }
     }
 
-    pub fn add_adjacent_nodes(&mut self) {
-        if let Some((x, y)) = heuristics::next_empty_top_left(&self.grid, self.size) {
+    pub fn adjacent_nodes(&mut self, y_range: &[usize], x_range: &[usize]) -> Vec<Node<T>> {
+        let mut neighbors = Vec::new();
+
+        let position = if y_range.is_empty() && y_range.is_empty() {
+            self.board.next_empty()
+        } else {
+            self.board.next_empty_random(y_range, x_range)
+        };
+
+        if let Some((x, y)) = position {
             for num in 1..=9u8 {
-                if heuristics::can_be_placed(&self.grid, self.size, x, y, num) {
-                    let mut grid = self.grid.clone();
-                    grid[y][x] = num;
-                    self.neighbors.push(Node::new(&grid, self.size));
+                if self.board.can_be_placed(x, y, num) {
+                    let mut next_board = self.board.clone();
+                    next_board.set(x, y, num);
+                    neighbors.push(Self::new(next_board));
                 }
             }
         }
+        self.visited = true;
+        neighbors
     }
 }
 
-pub fn dfs(root: Node, limit: Option<usize>) -> Vec<Node> {
-    let mut stack = Vec::new();
+pub fn solve_dfs<T: Board + Clone>(
+    board: T,
+    seed: Option<u64>,
+    limit: Option<usize>,
+    max_i: Option<usize>,
+) -> Vec<T> {
     let mut count: usize = 0;
-    let mut solutions: Vec<Node> = vec![];
+    let mut iterations: usize = 0;
+    let mut stack: VecDeque<Node<T>> = VecDeque::new();
+    let mut solutions: Vec<T> = Vec::new();
+    let root = Node::new(board.clone());
+    let mut x_range = Vec::new();
+    let mut y_range = Vec::new();
 
-    stack.push(root);
-    while let Some(mut node) = stack.pop() {
+    if let Some(seed) = seed {
+        let mut rng = rng::rng_from_seed(seed);
+        x_range = (0..board.size()).collect::<Vec<usize>>();
+        y_range = x_range.clone();
+        x_range.shuffle(&mut rng);
+        y_range.shuffle(&mut rng);
+    }
+
+    stack.push_front(root);
+
+    while let Some(mut node) = stack.pop_front() {
+        if let Some(max_i) = max_i {
+            if iterations >= max_i {
+                tracing::info!("Maximum iterations reached");
+                if let Some(node) = stack.pop_back() {
+                    let mut node = node.clone();
+                    node.visited = false;
+                    iterations = 0;
+                    stack.clear();
+                    stack.push_front(node);
+                }
+            }
+        }
         if let Some(limit) = limit {
             if count >= limit {
                 return solutions;
             }
         }
-        if heuristics::next_empty_top_left(&node.grid, node.size).is_none() {
+        if node.board.next_empty().is_none() {
             count += 1;
-            solutions.push(node.clone())
+            solutions.push(node.board.clone());
         }
         if !node.visited {
-            node.visited = true;
-            node.add_adjacent_nodes();
-            for node in node.neighbors.iter() {
+            for node in node.adjacent_nodes(&y_range, &x_range) {
                 if !node.visited {
-                    stack.push(node.clone());
+                    stack.push_front(node.clone())
                 }
             }
         }
+        iterations += 1;
     }
     solutions
 }
