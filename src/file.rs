@@ -1,9 +1,12 @@
 use std::fs::File;
+use std::io::BufRead;
+use std::io::BufReader;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
 use crate::board::Board;
+use crate::board::BoardBackend;
 
 fn create_board_path(destination: &Path, board: &Board) -> anyhow::Result<PathBuf> {
     if !destination.exists() || (!destination.is_file() && !destination.is_dir()) {
@@ -20,7 +23,7 @@ fn create_board_path(destination: &Path, board: &Board) -> anyhow::Result<PathBu
 
 /// Write gnereated board to file
 /// If destination path is a directory auto-generate filename
-/// IF destination path is a file append the board at the end
+/// If destination path is a file append the board at the end
 pub fn write_board(destination: &Path, board: &Board) -> anyhow::Result<()> {
     let board_path = create_board_path(destination, board)?;
     let mut board_file = if destination.is_dir() {
@@ -30,4 +33,16 @@ pub fn write_board(destination: &Path, board: &Board) -> anyhow::Result<()> {
     };
     writeln!(&mut board_file, "{}", board.to_string())?;
     Ok(())
+}
+
+/// Read boards from file
+pub fn read_boards(source: &Path) -> anyhow::Result<Vec<Board>> {
+    let file = File::open(source)?;
+    let reader = BufReader::new(file);
+    let mut boards = Vec::new();
+    for line in reader.lines().map_while(Result::ok) {
+        let board = Board::from_str(line, &BoardBackend::Grid)?;
+        boards.push(board);
+    }
+    Ok(boards)
 }
