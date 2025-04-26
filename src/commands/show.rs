@@ -1,4 +1,5 @@
-use crate::board::{GridBoard, to_pretty_grid};
+use crate::board::Board;
+use crate::board::BoardBackend;
 use std::io;
 
 #[derive(clap::Args, Clone, Debug)]
@@ -12,8 +13,8 @@ pub(crate) struct ShowArgs {
 pub fn cmd_show(args: &ShowArgs) -> anyhow::Result<()> {
     if args.stdin {
         for line in io::stdin().lines().map_while(Result::ok) {
-            let board = GridBoard::from_str(line)?;
-            println!("{}", to_pretty_grid(&board));
+            let board = Board::from_str(line, &BoardBackend::default())?;
+            println!("{}", board.to_pretty_grid());
         }
     }
     Ok(())

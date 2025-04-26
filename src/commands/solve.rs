@@ -1,7 +1,5 @@
-use super::BoardBackend;
-use crate::board::BitFieldBoard;
-use crate::board::GridBoard;
-use crate::board::to_pretty_grid;
+use crate::board::Board;
+use crate::board::BoardBackend;
 use crate::dfs;
 use anyhow::Result;
 use std::io;
@@ -26,32 +24,16 @@ pub(crate) struct SolveArgs {
 pub fn cmd_solve(args: &SolveArgs) -> Result<()> {
     if args.stdin {
         for line in io::stdin().lines().map_while(Result::ok) {
-            match args.backend {
-                BoardBackend::Grid => {
-                    for (index, solution) in dfs::dfs(
-                        vec![GridBoard::from_str(line)?],
-                        |b| b.id(),
-                        |b| b.completed(),
-                        |b| b.neighbors(),
-                    )
-                    .enumerate()
-                    {
-                        println!("{}\n{}", index, to_pretty_grid(&solution));
-                    }
-                }
-                BoardBackend::BitField => {
-                    for (index, solution) in dfs::dfs(
-                        vec![BitFieldBoard::from_str(line)?],
-                        |b| b.id(),
-                        |b| b.completed(),
-                        |b| b.neighbors(),
-                    )
-                    .enumerate()
-                    {
-                        println!("{}\n{}", index, to_pretty_grid(&solution));
-                    }
-                }
-            };
+            for (index, solution) in dfs::dfs(
+                vec![Board::from_str(line, &args.backend)?],
+                |b| b.id(),
+                |b| b.completed(),
+                |b| b.neighbors(),
+            )
+            .enumerate()
+            {
+                println!("{}\n{}", index, solution.to_pretty_grid());
+            }
         }
     }
     Ok(())

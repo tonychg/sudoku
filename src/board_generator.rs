@@ -1,5 +1,5 @@
-use super::Board;
-use super::GridBoard;
+use crate::board::Board;
+use crate::board::BoardBackend;
 use crate::dfs::dfs;
 use crate::dfs::dfs_with_max_depth;
 use crate::rng;
@@ -26,10 +26,10 @@ impl BoardGenerator {
         }
     }
 
-    pub fn make_playable(&self, board: &GridBoard) -> GridBoard {
+    pub fn make_playable(&self, board: &Board) -> Board {
         let mut holes = Vec::new();
         let mut rng = rng::rng_from_seed(self.seed);
-        let mut playable = GridBoard::from_board(&board);
+        let mut playable = Board::from_board(&board);
         let total = self.size * self.size;
         while holes.len() < total - self.starting_numbers {
             let index = rng.random_range(0..total);
@@ -39,7 +39,7 @@ impl BoardGenerator {
             }
             holes.push((x, y, playable.get(x, y)));
             playable.set(x, y, 0);
-            let next = GridBoard::from_board(&playable);
+            let next = Board::from_board(&playable);
             let mut counter = 0;
             for _ in dfs(vec![next], |b| b.id(), |b| b.completed(), |b| b.neighbors()) {
                 counter += 1;
@@ -58,8 +58,8 @@ impl BoardGenerator {
         playable
     }
 
-    pub fn generate(&self) -> Result<GridBoard> {
-        let empty = GridBoard::new(self.size, self.seed);
+    pub fn generate(&self, backend: &BoardBackend) -> Result<Board> {
+        let empty = Board::new(self.size, self.seed, backend);
         tracing::debug!(size = self.size, seed = self.seed, "Generate a new board");
         for (index, board) in dfs_with_max_depth(
             vec![empty],

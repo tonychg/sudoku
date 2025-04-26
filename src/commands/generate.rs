@@ -1,6 +1,5 @@
-use crate::board::Board;
-use crate::board::BoardGenerator;
-use crate::board::to_pretty_grid;
+use crate::board::BoardBackend;
+use crate::board_generator::BoardGenerator;
 use anyhow::Result;
 use std::path::PathBuf;
 
@@ -23,21 +22,24 @@ pub(crate) struct GenerateArgs {
     /// Path to destination directory
     #[arg(short = 'd', long)]
     destination: Option<PathBuf>,
+    /// Select board storage backend
+    #[arg(short = 'b', long, value_enum, default_value_t = BoardBackend::Grid)]
+    backend: BoardBackend,
 }
 
 #[tracing::instrument]
 pub(crate) fn cmd_generate(args: &GenerateArgs) -> Result<()> {
     let generator =
         BoardGenerator::new(args.size, args.seed, args.starting_numbers, args.max_depth);
-    let board = generator.generate()?;
+    let board = generator.generate(&args.backend)?;
     let playable = generator.make_playable(&board);
     if args.raw {
         println!("{}", board);
         println!("{}", playable);
     } else {
         println!("{}", board.seed());
-        println!("{}", to_pretty_grid(&board));
-        println!("{}", to_pretty_grid(&playable));
+        println!("{}", board.to_pretty_grid());
+        println!("{}", playable.to_pretty_grid());
     }
     Ok(())
 }

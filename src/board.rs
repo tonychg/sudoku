@@ -1,27 +1,158 @@
 mod bitfield;
-mod generator;
 mod grid;
 
-pub use bitfield::BitField;
-pub use bitfield::BitFieldBoard;
-pub use generator::BoardGenerator;
-pub use grid::GridBoard;
+use bitfield::BitFieldBoard;
+use grid::GridBoard;
 use std::fmt::Debug;
+use std::fmt::Display;
+use uuid::Uuid;
 
-pub trait Board: Send + Sync + Debug {
-    fn new(size: usize, seed: u64) -> Self;
-    fn size(&self) -> usize;
-    fn seed(&self) -> u64;
-    fn set(&mut self, x: usize, y: usize, num: u8);
-    fn get(&self, x: usize, y: usize) -> u8;
-    fn next_empty(&self) -> Option<(usize, usize)>;
-    fn next_empty_random(&self, y_range: &[usize], x_range: &[usize]) -> Option<(usize, usize)>;
-    fn can_be_placed(&self, x: usize, y: usize, num: u8) -> bool;
+#[derive(clap::ValueEnum, Default, Clone, Debug)]
+pub enum BoardBackend {
+    #[default]
+    Grid,
+    BitField,
 }
 
-pub fn parse_grid_string(sgrid: impl ToString) -> anyhow::Result<(usize, u64, String)> {
-    let sgrid = sgrid.to_string();
-    let data = sgrid.split(":").collect::<Vec<&str>>();
+pub struct Board {
+    id: Uuid,
+    inner: GridBoard,
+    bit_fields: Option<BitFieldBoard>,
+}
+
+impl Board {
+    pub fn new(size: usize, seed: u64, backend: &BoardBackend) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            inner: GridBoard::new(size, seed),
+            bit_fields: match backend {
+                BoardBackend::Grid => None,
+                BoardBackend::BitField => Some(BitFieldBoard::new(size)),
+            },
+        }
+    }
+
+    pub fn from_board(board: &Board) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            inner: board.inner.clone(),
+            bit_fields: board.bit_fields.clone(),
+        }
+    }
+
+    pub fn from_str(string_board: impl ToString, backend: &BoardBackend) -> anyhow::Result<Self> {
+        let (size, seed, grid) = parse_grid_string(string_board)?;
+        let mut board = Self::new(size, seed, backend);
+        for (index, num) in grid.chars().enumerate() {
+            let (x, y) = board.inner.xy(index);
+            let num: u8 = num.to_string().parse()?;
+            board.set(x, y, num);
+        }
+        Ok(board)
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn size(&self) -> usize {
+        self.inner.size()
+    }
+
+    pub fn seed(&self) -> u64 {
+        self.inner.seed()
+    }
+
+    pub fn get(&self, x: usize, y: usize) -> u8 {
+        self.inner.get(x, y)
+    }
+
+    pub fn set(&mut self, x: usize, y: usize, num: u8) {
+        self.inner.set(x, y, num);
+        // if let Some(bit_fields) = &mut self.bit_fields {
+        //     bit_fields.set(x, y, num);
+        // }
+    }
+
+    pub fn completed(&self) -> bool {
+        !self.inner.next_empty().is_some()
+    }
+
+    fn create_neighbors(&self, x: usize, y: usize) -> Vec<Self> {
+        let mut neighbors = Vec::new();
+        for num in 1..=9u8 {
+            if self.inner.can_be_placed(x, y, num) {
+                let mut next_board = Self::from_board(self);
+                next_board.set(x, y, num);
+                neighbors.push(next_board);
+            }
+        }
+        neighbors
+    }
+
+    pub fn random_neighbors(&self) -> Vec<Self> {
+        let mut neighbors = Vec::new();
+        if let Some((x, y)) = self.inner.next_empty_random() {
+            neighbors = self.create_neighbors(x, y);
+        }
+        neighbors
+    }
+
+    pub fn neighbors(&self) -> Vec<Self> {
+        let mut neighbors = Vec::new();
+        if let Some((x, y)) = self.inner.next_empty() {
+            neighbors = self.create_neighbors(x, y);
+        }
+        neighbors
+    }
+
+    pub fn to_pretty_grid(&self) -> String {
+        let size = self.size();
+        let line = (0..size * 2 + 7)
+            .map(|i| if i % 8 == 0 { "+" } else { "-" })
+            .fold(String::new(), |acc, c| acc + c);
+        let mut output = String::new();
+        for y in 0..size {
+            for x in 0..size {
+                let num = self.get(x, y);
+                let num_char = if num == 0 { " " } else { &format!("{}", num) };
+                let elem = if y == 0 && x == 0 {
+                    format!("{}\n| {}", line, num_char)
+                } else if !(x != size - 1 || y <= 1 && y != size - 1 || y % 3 != 2 && y != size - 1)
+                {
+                    format!(" {} |\n{}\n", num_char, line)
+                } else if x > 1 && (x - 1) % 3 == 2 {
+                    format!(" | {}", num_char)
+                } else if x == size - 1 {
+                    format!(" {} |\n", num_char)
+                } else if x == 0 {
+                    format!("| {}", num_char)
+                } else {
+                    format!(" {}", num_char)
+                };
+                output.push_str(&elem);
+            }
+        }
+        output
+    }
+}
+
+impl Display for Board {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let grid_line = self
+            .inner
+            .grid
+            .iter()
+            .map(|num| format!("{}", num))
+            .collect::<Vec<String>>()
+            .join("");
+        write!(f, "{}:{}:{}", self.size(), self.seed(), grid_line)
+    }
+}
+
+fn parse_grid_string(string_grid: impl ToString) -> anyhow::Result<(usize, u64, String)> {
+    let string_grid = string_grid.to_string();
+    let data = string_grid.split(":").collect::<Vec<&str>>();
     if data.len() != 3 {
         return Err(anyhow::anyhow!("Invalid format size:seed:grid"));
     }
@@ -29,33 +160,4 @@ pub fn parse_grid_string(sgrid: impl ToString) -> anyhow::Result<(usize, u64, St
     let seed: u64 = data[1].parse()?;
     let grid = data[2].to_string();
     Ok((size, seed, grid))
-}
-
-pub fn to_pretty_grid(board: &impl Board) -> String {
-    let size = board.size();
-    let line = (0..size * 2 + 7)
-        .map(|i| if i % 8 == 0 { "+" } else { "-" })
-        .fold(String::new(), |acc, c| acc + c);
-    let mut output = String::new();
-    for y in 0..size {
-        for x in 0..size {
-            let num = board.get(x, y);
-            let num_char = if num == 0 { " " } else { &format!("{}", num) };
-            let elem = if y == 0 && x == 0 {
-                format!("{}\n| {}", line, num_char)
-            } else if !(x != size - 1 || y <= 1 && y != size - 1 || y % 3 != 2 && y != size - 1) {
-                format!(" {} |\n{}\n", num_char, line)
-            } else if x > 1 && (x - 1) % 3 == 2 {
-                format!(" | {}", num_char)
-            } else if x == size - 1 {
-                format!(" {} |\n", num_char)
-            } else if x == 0 {
-                format!("| {}", num_char)
-            } else {
-                format!(" {}", num_char)
-            };
-            output.push_str(&elem);
-        }
-    }
-    output
 }

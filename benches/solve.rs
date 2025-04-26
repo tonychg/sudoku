@@ -2,11 +2,12 @@ use criterion::Criterion;
 use criterion::criterion_group;
 use criterion::criterion_main;
 use std::hint::black_box;
-use sudoku::board::GridBoard;
+use sudoku::board::Board;
+use sudoku::board::BoardBackend;
 use sudoku::dfs::dfs;
 
 fn solve_id(target: &str) -> usize {
-    let parsed = GridBoard::from_str(target).unwrap();
+    let parsed = Board::from_str(target, &BoardBackend::Grid).unwrap();
     dfs(
         vec![parsed],
         |b| b.id(),
