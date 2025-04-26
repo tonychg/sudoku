@@ -1,10 +1,11 @@
+use anyhow::Result;
+use rand::Rng;
+
 use crate::board::Board;
 use crate::board::BoardBackend;
 use crate::dfs::dfs;
 use crate::dfs::dfs_with_max_depth;
 use crate::rng;
-use anyhow::Result;
-use rand::Rng;
 
 pub struct BoardGenerator {
     seed: u64,
@@ -41,18 +42,25 @@ impl BoardGenerator {
             playable.set(x, y, 0);
             let next = Board::from_board(&playable);
             let mut counter = 0;
-            for _ in dfs(vec![next], |b| b.id(), |b| b.completed(), |b| b.neighbors()) {
+            for _ in dfs(
+                vec![next],
+                |b| b.id(),
+                |b| b.completed(),
+                |b| b.random_neighbors(),
+            ) {
                 counter += 1;
                 if counter == 2 {
+                    tracing::debug!(counter, "Found solution");
                     break;
                 }
             }
+            let current_starting_numbers = total - holes.len();
             if counter != 1 {
                 if let Some((x, y, num)) = holes.pop() {
                     playable.set(x, y, num);
                 }
             } else {
-                tracing::debug!("Current starting numbers {}", total - holes.len());
+                tracing::debug!("Current starting numbers {}", current_starting_numbers);
             }
         }
         playable

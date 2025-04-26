@@ -1,8 +1,10 @@
+use std::io;
+
+use anyhow::Result;
+
 use crate::board::Board;
 use crate::board::BoardBackend;
 use crate::dfs;
-use anyhow::Result;
-use std::io;
 
 #[derive(clap::Args, Clone, Debug)]
 pub(crate) struct SolveArgs {

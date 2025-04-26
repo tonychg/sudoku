@@ -1,5 +1,6 @@
-use crate::rng;
 use rand::seq::SliceRandom;
+
+use crate::rng;
 
 #[derive(Debug, Clone)]
 pub struct GridBoard {

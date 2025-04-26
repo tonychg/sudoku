@@ -1,7 +1,8 @@
-use crate::commands::Commands;
-use crate::commands::run_command;
 use anyhow::Result;
 use clap::Parser;
+
+use crate::commands::Commands;
+use crate::commands::run_command;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]

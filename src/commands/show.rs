@@ -1,6 +1,7 @@
+use std::io;
+
 use crate::board::Board;
 use crate::board::BoardBackend;
-use std::io;
 
 #[derive(clap::Args, Clone, Debug)]
 pub(crate) struct ShowArgs {

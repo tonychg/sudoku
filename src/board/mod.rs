@@ -1,11 +1,13 @@
 mod bitfield;
 mod grid;
 
-use bitfield::BitFieldBoard;
-use grid::GridBoard;
 use std::fmt::Debug;
 use std::fmt::Display;
+
 use uuid::Uuid;
+
+use bitfield::BitFieldBoard;
+use grid::GridBoard;
 
 #[derive(clap::ValueEnum, Default, Clone, Debug)]
 pub enum BoardBackend {
