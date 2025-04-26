@@ -35,16 +35,17 @@ pub(crate) fn cmd_generate(args: &GenerateArgs) -> Result<()> {
     let generator =
         BoardGenerator::new(args.size, args.seed, args.starting_numbers, args.max_depth);
     let board = generator.generate(&args.backend)?;
-    let playable = generator.make_playable(&board);
-    if let Some(destination) = &args.destination {
-        write_board(&destination.as_path(), &playable)?;
-    } else if args.raw {
-        println!("{}", board);
-        println!("{}", playable);
-    } else {
-        println!("{}", board.seed());
-        println!("{}", board.to_pretty_grid());
-        println!("{}", playable.to_pretty_grid());
+    if let Some(playable) = generator.make_playable(&board) {
+        if let Some(destination) = &args.destination {
+            write_board(&destination.as_path(), &playable)?;
+        } else if args.raw {
+            println!("{}", board);
+            println!("{}", playable);
+        } else {
+            println!("{}", board.seed());
+            println!("{}", board.to_pretty_grid());
+            println!("{}", playable.to_pretty_grid());
+        }
     }
     Ok(())
 }
