@@ -13,7 +13,7 @@ pub enum BoardBackend {
 }
 
 #[derive(Subcommand)]
-pub(crate) enum Commands {
+pub enum Commands {
     /// Generate a new board
     Generate(generate::GenerateArgs),
     /// Solve a board
@@ -22,7 +22,7 @@ pub(crate) enum Commands {
     Show(show::ShowArgs),
 }
 
-pub(crate) fn run_command(command: &Commands) -> Result<()> {
+pub fn run_command(command: &Commands) -> Result<()> {
     match command {
         Commands::Generate(args) => generate::cmd_generate(args),
         Commands::Solve(args) => solve::cmd_solve(args),

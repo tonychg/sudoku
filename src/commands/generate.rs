@@ -1,8 +1,10 @@
+use std::path::PathBuf;
+
+use anyhow::Result;
+
 use crate::board::BoardBackend;
 use crate::board_generator::BoardGenerator;
 use crate::destination::write_board;
-use anyhow::Result;
-use std::path::PathBuf;
 
 #[derive(clap::Args, Clone, Debug)]
 pub(crate) struct GenerateArgs {

@@ -1,10 +1,11 @@
+use anyhow::Result;
+use rand::Rng;
+
 use crate::board::Board;
 use crate::board::BoardBackend;
 use crate::dfs::dfs;
 use crate::dfs::dfs_with_max_depth;
 use crate::rng;
-use anyhow::Result;
-use rand::Rng;
 
 pub struct BoardGenerator {
     seed: u64,
