@@ -41,18 +41,25 @@ impl BoardGenerator {
             playable.set(x, y, 0);
             let next = Board::from_board(&playable);
             let mut counter = 0;
-            for _ in dfs(vec![next], |b| b.id(), |b| b.completed(), |b| b.neighbors()) {
+            for _ in dfs(
+                vec![next],
+                |b| b.id(),
+                |b| b.completed(),
+                |b| b.random_neighbors(),
+            ) {
                 counter += 1;
                 if counter == 2 {
+                    tracing::debug!(counter, "Found solution");
                     break;
                 }
             }
+            let current_starting_numbers = total - holes.len();
             if counter != 1 {
                 if let Some((x, y, num)) = holes.pop() {
                     playable.set(x, y, num);
                 }
             } else {
-                tracing::debug!("Current starting numbers {}", total - holes.len());
+                tracing::debug!("Current starting numbers {}", current_starting_numbers);
             }
         }
         playable
