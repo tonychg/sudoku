@@ -1,5 +1,6 @@
 use crate::board::BoardBackend;
 use crate::board_generator::BoardGenerator;
+use crate::destination::write_board;
 use anyhow::Result;
 use std::path::PathBuf;
 
@@ -33,7 +34,9 @@ pub(crate) fn cmd_generate(args: &GenerateArgs) -> Result<()> {
         BoardGenerator::new(args.size, args.seed, args.starting_numbers, args.max_depth);
     let board = generator.generate(&args.backend)?;
     let playable = generator.make_playable(&board);
-    if args.raw {
+    if let Some(destination) = &args.destination {
+        write_board(&destination.as_path(), &playable)?;
+    } else if args.raw {
         println!("{}", board);
         println!("{}", playable);
     } else {
