@@ -1,11 +1,10 @@
-use std::io;
 use std::path::PathBuf;
 
 use anyhow::Result;
 
 use crate::board::Board;
 use crate::board::BoardBackend;
-use crate::file::read_boards;
+use crate::file::list_boards;
 
 #[derive(clap::Args, Clone, Debug)]
 pub(crate) struct SolveArgs {
@@ -25,27 +24,16 @@ pub(crate) struct SolveArgs {
     backend: BoardBackend,
 }
 
+#[tracing::instrument]
+pub fn cmd_solve(args: &SolveArgs) -> Result<()> {
+    for board in list_boards(args.source.as_ref(), args.stdin)? {
+        dfs_solve_board(board);
+    }
+    Ok(())
+}
+
 fn dfs_solve_board(board: Board) {
     for (index, solution) in board.backtracking(false).enumerate() {
         println!("{}\n{}", index, solution.to_pretty_grid());
     }
-}
-
-#[tracing::instrument]
-pub fn cmd_solve(args: &SolveArgs) -> Result<()> {
-    if let Some(source) = &args.source {
-        for board in read_boards(&source.as_path())? {
-            dfs_solve_board(board);
-        }
-    }
-    if args.stdin {
-        for board in io::stdin()
-            .lines()
-            .map_while(Result::ok)
-            .map(|line| Board::from_str(line, &args.backend))
-        {
-            dfs_solve_board(board?);
-        }
-    }
-    Ok(())
 }

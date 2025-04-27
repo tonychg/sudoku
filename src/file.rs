@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::io;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Write;
@@ -43,6 +44,22 @@ pub fn read_boards(source: &Path) -> anyhow::Result<Vec<Board>> {
     for line in reader.lines().map_while(Result::ok) {
         let board = Board::from_str(line, &BoardBackend::Grid)?;
         boards.push(board);
+    }
+    Ok(boards)
+}
+
+pub fn list_boards(source: Option<&PathBuf>, stdin: bool) -> anyhow::Result<Vec<Board>> {
+    let mut boards = Vec::new();
+    if let Some(source) = source {
+        for board in read_boards(&source.as_path())? {
+            boards.push(board);
+        }
+    }
+    if stdin {
+        for line in io::stdin().lines().map_while(Result::ok) {
+            let board = Board::from_str(line, &BoardBackend::default())?;
+            boards.push(board);
+        }
     }
     Ok(boards)
 }
