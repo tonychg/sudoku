@@ -1,0 +1,11 @@
+[package]
+name = "sudoku-cli"
+version = "1.0.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+sudoku.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

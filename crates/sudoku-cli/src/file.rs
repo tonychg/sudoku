@@ -6,8 +6,8 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
-use crate::board::Board;
-use crate::board::BoardBackend;
+use sudoku::Board;
+use sudoku::BoardBackend;
 
 fn create_board_path(destination: &Path, board: &Board) -> anyhow::Result<PathBuf> {
     if !destination.exists() || (!destination.is_file() && !destination.is_dir()) {

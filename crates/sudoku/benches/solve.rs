@@ -4,8 +4,8 @@ use criterion::Criterion;
 use criterion::criterion_group;
 use criterion::criterion_main;
 
-use sudoku::board::Board;
-use sudoku::board::BoardBackend;
+use sudoku::Board;
+use sudoku::BoardBackend;
 
 fn bench_linear_solve(c: &mut Criterion, target: &str) {
     c.bench_function(
