@@ -25,14 +25,14 @@ pub(crate) struct GenerateArgs {
     /// Path to destination directory
     #[arg(short = 'd', long)]
     destination: Option<PathBuf>,
-    /// Select board storage backend
-    #[arg(short = 'b', long, value_enum, default_value_t = BoardBackend::Grid)]
-    backend: BoardBackend,
+    // /// Select board storage backend
+    // #[arg(short = 'b', long, value_enum, default_value_t = BoardBackend::Grid)]
+    // backend: BoardBackend,
 }
 
 #[tracing::instrument]
 pub(crate) fn cmd_generate(args: &GenerateArgs) -> Result<()> {
-    let board = Board::generate(args.size, args.seed, args.backend.clone(), args.max_depth)?;
+    let board = Board::generate(args.size, args.seed, BoardBackend::Grid, args.max_depth)?;
     let playable = board.make_playable(args.starting_numbers);
     if let Some(destination) = &args.destination {
         write_board(&destination.as_path(), &playable)?;
