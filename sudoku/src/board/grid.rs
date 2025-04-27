@@ -55,10 +55,6 @@ impl GridBoard {
         self.seed
     }
 
-    pub fn set_seed(&mut self, seed: u64) {
-        self.seed = seed;
-    }
-
     pub fn size(&self) -> usize {
         self.size
     }
