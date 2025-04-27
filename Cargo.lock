@@ -629,6 +629,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sudoku-app"
+version = "1.0.0"
+dependencies = [
+ "sudoku",
+]
+
+[[package]]
 name = "sudoku-cli"
 version = "1.0.0"
 dependencies = [

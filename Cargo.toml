@@ -1,18 +1,19 @@
 [workspace]
 resolver = "3"
 members = [
-    "crates/*"
+    "sudoku",
+    "sudoku-cli",
 ]
 
 [workspace.dependencies]
+anyhow = "1.0.98"
+clap = { version = "4.5", features = ["derive"] }
+itertools = "0.14.0"
 rand = "0.9.1"
 rand_chacha = "0.9.0"
 ref-cast = "1.0.24"
-anyhow = "1.0.98"
-clap = { version = "4.5", features = ["derive"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
-itertools = "0.14.0"
 uuid = { version = "1.16.0", features = ["v4"] }
-sudoku = { version = "1.0.0", path = "crates/sudoku" }
-sudoku-cli = { version = "1.0.0", path = "crates/sudoku-cli" }
+sudoku = { version = "1.0.0", path = "sudoku" }
+sudoku-cli = { version = "1.0.0", path = "sudoku-cli" }
