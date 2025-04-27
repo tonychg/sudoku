@@ -29,20 +29,16 @@ impl BoardGenerator {
         while holes.len() < total - starting_numbers {
             let index = rng.random_range(0..total);
             let (x, y) = (index % self.size, index / self.size);
-            if playable.get(x, y) == 0 {
-                continue;
-            }
-            holes.push((x, y, playable.get(x, y)));
-            playable.set(x, y, 0);
-            let next = Board::from_board(&playable);
-            let counter = next.count_solutions(2, true);
-            let current_starting_numbers = total - holes.len();
-            if counter != 1 {
-                if let Some((x, y, num)) = holes.pop() {
-                    playable.set(x, y, num);
+            if playable.get(x, y) != 0 {
+                holes.push((x, y, playable.get(x, y)));
+                playable.set(x, y, 0);
+                if playable.count_solutions(2, true) != 1 {
+                    if let Some((x, y, num)) = holes.pop() {
+                        playable.set(x, y, num);
+                    }
+                } else {
+                    tracing::debug!("Current starting numbers {}", total - holes.len());
                 }
-            } else {
-                tracing::debug!("Current starting numbers {}", current_starting_numbers);
             }
         }
         playable
@@ -55,15 +51,9 @@ impl BoardGenerator {
     pub fn generate(&self, backend: &BoardBackend, max_depth: usize) -> Result<Board> {
         let empty = Board::new(self.size, self.seed, backend);
         tracing::debug!(size = self.size, seed = self.seed, "Generate a new board");
-        for (index, board) in empty
-            .backtracking_with_max_depth(max_depth, true)
-            .enumerate()
-        {
-            if index == 0 {
-                tracing::debug!("Complete board generated");
-                return Ok(board);
-            }
+        match empty.backtracking_with_max_depth(max_depth, true).next() {
+            Some(board) => Ok(board),
+            None => Err(anyhow::anyhow!("Failed to generate board")),
         }
-        Err(anyhow::anyhow!("Failed to generate board"))
     }
 }
