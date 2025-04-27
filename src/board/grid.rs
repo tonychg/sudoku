@@ -16,10 +16,8 @@ impl GridBoard {
         let mut y_range = (0..size).collect::<Vec<usize>>();
         let mut x_range = y_range.clone();
         let mut rng = rng::rng_from_seed(seed);
-
         x_range.shuffle(&mut rng);
         y_range.shuffle(&mut rng);
-
         Self {
             size,
             seed,
@@ -27,6 +25,17 @@ impl GridBoard {
             y_range,
             x_range,
         }
+    }
+
+    pub fn from_str(input: impl ToString) -> anyhow::Result<Self> {
+        let (size, seed, grid) = parse_grid_string(input)?;
+        let mut board = Self::new(size, seed);
+        for (index, num) in grid.chars().enumerate() {
+            let (x, y) = board.xy(index);
+            let num: u8 = num.to_string().parse()?;
+            board.set(x, y, num);
+        }
+        Ok(board)
     }
 
     pub fn set(&mut self, x: usize, y: usize, num: u8) {
@@ -112,4 +121,16 @@ impl GridBoard {
         }
         false
     }
+}
+
+fn parse_grid_string(string_grid: impl ToString) -> anyhow::Result<(usize, u64, String)> {
+    let string_grid = string_grid.to_string();
+    let data = string_grid.split(":").collect::<Vec<&str>>();
+    if data.len() != 3 {
+        return Err(anyhow::anyhow!("Invalid format size:seed:grid"));
+    }
+    let size: usize = data[0].parse()?;
+    let seed: u64 = data[1].parse()?;
+    let grid = data[2].to_string();
+    Ok((size, seed, grid))
 }
