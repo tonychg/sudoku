@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use sudoku::Board;
-use sudoku::BoardBackend;
 
 use crate::file::write_board;
 
@@ -13,9 +12,6 @@ pub(crate) struct GenerateArgs {
     /// Maximum depth into graph for complete board generation
     #[arg(short, long, default_value_t = 2000)]
     max_depth: usize,
-    /// Size of board
-    #[arg(short, long, default_value_t = 9)]
-    size: usize,
     /// Define starting numbers count
     #[arg(short = 'n', long, default_value_t = 26)]
     starting_numbers: usize,
@@ -25,14 +21,11 @@ pub(crate) struct GenerateArgs {
     /// Path to destination directory
     #[arg(short = 'd', long)]
     destination: Option<PathBuf>,
-    // /// Select board storage backend
-    // #[arg(short = 'b', long, value_enum, default_value_t = BoardBackend::Grid)]
-    // backend: BoardBackend,
 }
 
 #[tracing::instrument]
 pub(crate) fn cmd_generate(args: &GenerateArgs) -> Result<()> {
-    let board = Board::generate(args.size, args.seed, BoardBackend::Grid, args.max_depth)?;
+    let board = Board::generate(args.seed, args.max_depth)?;
     let playable = board.make_playable(args.starting_numbers);
     if let Some(destination) = &args.destination {
         write_board(&destination.as_path(), &playable)?;

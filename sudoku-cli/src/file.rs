@@ -7,7 +7,6 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use sudoku::Board;
-use sudoku::BoardBackend;
 
 fn create_board_path(destination: &Path, board: &Board) -> anyhow::Result<PathBuf> {
     if !destination.exists() || (!destination.is_file() && !destination.is_dir()) {
@@ -42,7 +41,7 @@ pub fn read_boards(source: &Path) -> anyhow::Result<Vec<Board>> {
     let reader = BufReader::new(file);
     let mut boards = Vec::new();
     for line in reader.lines().map_while(Result::ok) {
-        let board = Board::from_str(line, &BoardBackend::Grid)?;
+        let board = Board::from_str(line)?;
         boards.push(board);
     }
     Ok(boards)
@@ -57,7 +56,7 @@ pub fn list_boards(source: Option<&PathBuf>, stdin: bool) -> anyhow::Result<Vec<
     }
     if stdin {
         for line in io::stdin().lines().map_while(Result::ok) {
-            let board = Board::from_str(line, &BoardBackend::default())?;
+            let board = Board::from_str(line)?;
             boards.push(board);
         }
     }

@@ -5,14 +5,13 @@ use criterion::criterion_group;
 use criterion::criterion_main;
 
 use sudoku::Board;
-use sudoku::BoardBackend;
 
 fn bench_linear_solve(c: &mut Criterion, target: &str) {
     c.bench_function(
         &format!("solve dfs id starting_numbers=26 grid={}", target),
         |b| {
             b.iter(|| {
-                let parsed = Board::from_str(target, &BoardBackend::Grid).unwrap();
+                let parsed = Board::from_str(target).unwrap();
                 parsed.backtracking(false).count()
             })
         },
