@@ -6,7 +6,6 @@ use criterion::criterion_main;
 
 use sudoku::board::Board;
 use sudoku::board::BoardBackend;
-use sudoku::dfs::dfs;
 
 fn bench_linear_solve(c: &mut Criterion, target: &str) {
     c.bench_function(
@@ -14,13 +13,7 @@ fn bench_linear_solve(c: &mut Criterion, target: &str) {
         |b| {
             b.iter(|| {
                 let parsed = Board::from_str(target, &BoardBackend::Grid).unwrap();
-                dfs(
-                    vec![parsed],
-                    |b| b.id(),
-                    |b| b.completed(),
-                    |b| b.neighbors(),
-                )
-                .count()
+                parsed.backtracking(false).count()
             })
         },
     );

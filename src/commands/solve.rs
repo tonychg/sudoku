@@ -5,7 +5,6 @@ use anyhow::Result;
 
 use crate::board::Board;
 use crate::board::BoardBackend;
-use crate::dfs;
 use crate::file::read_boards;
 
 #[derive(clap::Args, Clone, Debug)]
@@ -27,14 +26,7 @@ pub(crate) struct SolveArgs {
 }
 
 fn dfs_solve_board(board: Board) {
-    for (index, solution) in dfs::dfs(
-        vec![board],
-        |b| b.id(),
-        |b| b.completed(),
-        |b| b.neighbors(),
-    )
-    .enumerate()
-    {
+    for (index, solution) in board.backtracking(false).enumerate() {
         println!("{}\n{}", index, solution.to_pretty_grid());
     }
 }

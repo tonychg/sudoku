@@ -9,6 +9,9 @@ use uuid::Uuid;
 use bitfield::BitFieldBoard;
 use grid::GridBoard;
 
+use crate::dfs::dfs;
+use crate::dfs::dfs_with_max_depth;
+
 #[derive(clap::ValueEnum, Default, Clone, Debug)]
 pub enum BoardBackend {
     #[default]
@@ -22,6 +25,19 @@ pub struct Board {
     bit_fields: Option<BitFieldBoard>,
 }
 
+impl Display for Board {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let grid_line = self
+            .inner
+            .grid
+            .iter()
+            .map(|num| format!("{}", num))
+            .collect::<Vec<String>>()
+            .join("");
+        write!(f, "{}:{}:{}", self.size(), self.seed(), grid_line)
+    }
+}
+
 impl Board {
     pub fn new(size: usize, seed: u64, backend: &BoardBackend) -> Self {
         Self {
@@ -32,6 +48,33 @@ impl Board {
                 BoardBackend::BitField => Some(BitFieldBoard::new(size)),
             },
         }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    pub fn size(&self) -> usize {
+        self.inner.size()
+    }
+
+    pub fn seed(&self) -> u64 {
+        self.inner.seed()
+    }
+
+    pub fn set_seed(&mut self, seed: u64) {
+        self.inner.set_seed(seed);
+    }
+
+    pub fn get(&self, x: usize, y: usize) -> u8 {
+        self.inner.get(x, y)
+    }
+
+    pub fn set(&mut self, x: usize, y: usize, num: u8) {
+        self.inner.set(x, y, num);
+        // if let Some(bit_fields) = &mut self.bit_fields {
+        //     bit_fields.set(x, y, num);
+        // }
     }
 
     pub fn from_board(board: &Board) -> Self {
@@ -51,61 +94,6 @@ impl Board {
             board.set(x, y, num);
         }
         Ok(board)
-    }
-
-    pub fn id(&self) -> Uuid {
-        self.id
-    }
-
-    pub fn size(&self) -> usize {
-        self.inner.size()
-    }
-
-    pub fn seed(&self) -> u64 {
-        self.inner.seed()
-    }
-
-    pub fn get(&self, x: usize, y: usize) -> u8 {
-        self.inner.get(x, y)
-    }
-
-    pub fn set(&mut self, x: usize, y: usize, num: u8) {
-        self.inner.set(x, y, num);
-        // if let Some(bit_fields) = &mut self.bit_fields {
-        //     bit_fields.set(x, y, num);
-        // }
-    }
-
-    pub fn completed(&self) -> bool {
-        !self.inner.next_empty().is_some()
-    }
-
-    fn create_neighbors(&self, x: usize, y: usize) -> Vec<Self> {
-        let mut neighbors = Vec::new();
-        for num in 1..=9u8 {
-            if self.inner.can_be_placed(x, y, num) {
-                let mut next_board = Self::from_board(self);
-                next_board.set(x, y, num);
-                neighbors.push(next_board);
-            }
-        }
-        neighbors
-    }
-
-    pub fn random_neighbors(&self) -> Vec<Self> {
-        let mut neighbors = Vec::new();
-        if let Some((x, y)) = self.inner.next_empty_random() {
-            neighbors = self.create_neighbors(x, y);
-        }
-        neighbors
-    }
-
-    pub fn neighbors(&self) -> Vec<Self> {
-        let mut neighbors = Vec::new();
-        if let Some((x, y)) = self.inner.next_empty() {
-            neighbors = self.create_neighbors(x, y);
-        }
-        neighbors
     }
 
     pub fn to_pretty_grid(&self) -> String {
@@ -137,18 +125,101 @@ impl Board {
         }
         output
     }
-}
 
-impl Display for Board {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let grid_line = self
-            .inner
-            .grid
-            .iter()
-            .map(|num| format!("{}", num))
-            .collect::<Vec<String>>()
-            .join("");
-        write!(f, "{}:{}:{}", self.size(), self.seed(), grid_line)
+    fn completed(&self) -> bool {
+        !self.inner.next_empty().is_some()
+    }
+
+    fn create_neighbors(&self, x: usize, y: usize) -> Vec<Self> {
+        let mut neighbors = Vec::new();
+        for num in 1..=9u8 {
+            if self.inner.can_be_placed(x, y, num) {
+                let mut next_board = Self::from_board(self);
+                next_board.set(x, y, num);
+                neighbors.push(next_board);
+            }
+        }
+        neighbors
+    }
+
+    fn random_neighbors(&self) -> Vec<Self> {
+        let mut neighbors = Vec::new();
+        if let Some((x, y)) = self.inner.next_empty_random() {
+            neighbors = self.create_neighbors(x, y);
+        }
+        neighbors
+    }
+
+    fn neighbors(&self) -> Vec<Self> {
+        let mut neighbors = Vec::new();
+        if let Some((x, y)) = self.inner.next_empty() {
+            neighbors = self.create_neighbors(x, y);
+        }
+        neighbors
+    }
+
+    /// Backtrack all solutions
+    /// If randomize is true, neighbors will be choosen randomly
+    pub fn backtracking(&self, randomize: bool) -> impl Iterator<Item = Board> {
+        dfs(
+            vec![Board::from_board(self)],
+            |b| b.id(),
+            |b| b.completed(),
+            move |b| {
+                if randomize {
+                    b.random_neighbors()
+                } else {
+                    b.neighbors()
+                }
+            },
+        )
+    }
+
+    /// Backtrack all solutions
+    /// If randomize is true, neighbors will be choosen randomly
+    /// Maximum depth parameter specify when branch will be cut
+    pub fn backtracking_with_max_depth(
+        &self,
+        max_depth: usize,
+        randomize: bool,
+    ) -> impl Iterator<Item = Board> {
+        dfs_with_max_depth(
+            vec![Board::from_board(self)],
+            |b| b.id(),
+            |b| b.completed(),
+            move |b| {
+                if randomize {
+                    b.random_neighbors()
+                } else {
+                    b.neighbors()
+                }
+            },
+            max_depth,
+        )
+    }
+
+    /// Traversing in DFS order the solutions graph
+    /// If limit is reached break the loop an return the limit
+    pub fn count_solutions(&self, limit: usize, randomize: bool) -> usize {
+        let mut counter = 0;
+        for _ in dfs(
+            vec![Board::from_board(self)],
+            |b| b.id(),
+            |b| b.completed(),
+            move |b| {
+                if randomize {
+                    b.random_neighbors()
+                } else {
+                    b.neighbors()
+                }
+            },
+        ) {
+            counter += 1;
+            if counter == limit {
+                break;
+            }
+        }
+        counter
     }
 }
 
