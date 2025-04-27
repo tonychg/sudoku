@@ -45,28 +45,8 @@ impl Board {
         Self {
             id: Uuid::new_v4(),
             inner: GridBoard::new(size, seed),
-            bit_fields: match backend {
-                BoardBackend::Grid => None,
-                BoardBackend::BitField => Some(BitFieldBoard::new(size)),
-            },
+            bit_fields: Self::new_bit_fields(size, backend),
         }
-    }
-
-    pub fn generate(
-        size: usize,
-        seed: Option<u64>,
-        backend: BoardBackend,
-        max_depth: usize,
-    ) -> anyhow::Result<Self> {
-        let generator = BoardGenerator::new(size, seed);
-        let board = generator.generate(&backend, max_depth)?;
-        Ok(board)
-    }
-
-    pub fn make_playable(&self, starting_numbers: usize) -> Self {
-        let generator = BoardGenerator::new(self.inner.size(), Some(self.inner.seed()));
-        let playable = generator.make_playable(&self, starting_numbers);
-        playable
     }
 
     pub fn id(&self) -> Uuid {
@@ -96,6 +76,13 @@ impl Board {
         // }
     }
 
+    fn new_bit_fields(size: usize, backend: &BoardBackend) -> Option<BitFieldBoard> {
+        match backend {
+            BoardBackend::Grid => None,
+            BoardBackend::BitField => Some(BitFieldBoard::new(size)),
+        }
+    }
+
     pub fn from_board(board: &Board) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -104,14 +91,13 @@ impl Board {
         }
     }
 
-    pub fn from_str(string_board: impl ToString, backend: &BoardBackend) -> anyhow::Result<Self> {
-        let (size, seed, grid) = parse_grid_string(string_board)?;
-        let mut board = Self::new(size, seed, backend);
-        for (index, num) in grid.chars().enumerate() {
-            let (x, y) = board.inner.xy(index);
-            let num: u8 = num.to_string().parse()?;
-            board.set(x, y, num);
-        }
+    pub fn from_str(input: impl ToString, backend: &BoardBackend) -> anyhow::Result<Self> {
+        let inner = GridBoard::from_str(input)?;
+        let board = Self {
+            id: Uuid::new_v4(),
+            inner: inner.clone(),
+            bit_fields: Self::new_bit_fields(inner.size(), backend),
+        };
         Ok(board)
     }
 
@@ -240,16 +226,18 @@ impl Board {
         }
         counter
     }
-}
 
-fn parse_grid_string(string_grid: impl ToString) -> anyhow::Result<(usize, u64, String)> {
-    let string_grid = string_grid.to_string();
-    let data = string_grid.split(":").collect::<Vec<&str>>();
-    if data.len() != 3 {
-        return Err(anyhow::anyhow!("Invalid format size:seed:grid"));
+    pub fn generate(
+        size: usize,
+        seed: Option<u64>,
+        backend: BoardBackend,
+        max_depth: usize,
+    ) -> anyhow::Result<Self> {
+        BoardGenerator::new(size, seed).generate(&backend, max_depth)
     }
-    let size: usize = data[0].parse()?;
-    let seed: u64 = data[1].parse()?;
-    let grid = data[2].to_string();
-    Ok((size, seed, grid))
+
+    pub fn make_playable(&self, starting_numbers: usize) -> Self {
+        BoardGenerator::new(self.inner.size(), Some(self.inner.seed()))
+            .make_playable(&self, starting_numbers)
+    }
 }
