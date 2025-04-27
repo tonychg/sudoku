@@ -1,3 +1,4 @@
+/// TODO: not currently supported
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct BitFieldBoard {
