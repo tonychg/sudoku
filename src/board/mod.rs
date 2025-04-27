@@ -1,4 +1,5 @@
 mod bitfield;
+mod generator;
 mod grid;
 
 use std::fmt::Debug;
@@ -7,6 +8,7 @@ use std::fmt::Display;
 use uuid::Uuid;
 
 use bitfield::BitFieldBoard;
+use generator::BoardGenerator;
 use grid::GridBoard;
 
 use crate::dfs::dfs;
@@ -48,6 +50,23 @@ impl Board {
                 BoardBackend::BitField => Some(BitFieldBoard::new(size)),
             },
         }
+    }
+
+    pub fn generate(
+        size: usize,
+        seed: Option<u64>,
+        backend: BoardBackend,
+        max_depth: usize,
+    ) -> anyhow::Result<Self> {
+        let generator = BoardGenerator::new(size, seed);
+        let board = generator.generate(&backend, max_depth)?;
+        Ok(board)
+    }
+
+    pub fn make_playable(&self, starting_numbers: usize) -> Self {
+        let generator = BoardGenerator::new(self.inner.size(), Some(self.inner.seed()));
+        let playable = generator.make_playable(&self, starting_numbers);
+        playable
     }
 
     pub fn id(&self) -> Uuid {

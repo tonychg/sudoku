@@ -8,29 +8,25 @@ use crate::rng;
 pub struct BoardGenerator {
     seed: u64,
     size: usize,
-    starting_numbers: usize,
-    max_depth: usize,
 }
 
 impl BoardGenerator {
-    pub fn new(size: usize, seed: Option<u64>, starting_numbers: usize, max_depth: usize) -> Self {
+    pub fn new(size: usize, seed: Option<u64>) -> Self {
         Self {
             seed: match seed {
                 Some(seed) => seed,
                 None => rng::generate_seed(),
             },
-            starting_numbers,
             size,
-            max_depth,
         }
     }
 
-    fn iterative_playable(&self, board: &Board) -> Board {
+    fn iterative_playable(&self, board: &Board, starting_numbers: usize) -> Board {
         let mut holes = Vec::new();
-        let mut rng = rng::rng_from_seed(self.seed);
+        let mut rng = rng::rng_from_seed(board.seed());
         let mut playable = Board::from_board(&board);
         let total = self.size * self.size;
-        while holes.len() < total - self.starting_numbers {
+        while holes.len() < total - starting_numbers {
             let index = rng.random_range(0..total);
             let (x, y) = (index % self.size, index / self.size);
             if playable.get(x, y) == 0 {
@@ -52,15 +48,15 @@ impl BoardGenerator {
         playable
     }
 
-    pub fn make_playable(&self, board: &Board) -> Option<Board> {
-        Some(self.iterative_playable(board))
+    pub fn make_playable(&self, board: &Board, starting_numbers: usize) -> Board {
+        self.iterative_playable(board, starting_numbers)
     }
 
-    pub fn generate(&self, backend: &BoardBackend) -> Result<Board> {
+    pub fn generate(&self, backend: &BoardBackend, max_depth: usize) -> Result<Board> {
         let empty = Board::new(self.size, self.seed, backend);
         tracing::debug!(size = self.size, seed = self.seed, "Generate a new board");
         for (index, board) in empty
-            .backtracking_with_max_depth(self.max_depth, true)
+            .backtracking_with_max_depth(max_depth, true)
             .enumerate()
         {
             if index == 0 {
