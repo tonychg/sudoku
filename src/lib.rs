@@ -1,6 +1,5 @@
 pub mod bfs;
 pub mod board;
-pub mod board_generator;
 pub mod cli;
 pub(crate) mod commands;
 pub mod dfs;

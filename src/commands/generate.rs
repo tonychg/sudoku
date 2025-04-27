@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 
+use crate::board::Board;
 use crate::board::BoardBackend;
-use crate::board_generator::BoardGenerator;
 use crate::file::write_board;
 
 #[derive(clap::Args, Clone, Debug)]
@@ -32,20 +32,17 @@ pub(crate) struct GenerateArgs {
 
 #[tracing::instrument]
 pub(crate) fn cmd_generate(args: &GenerateArgs) -> Result<()> {
-    let generator =
-        BoardGenerator::new(args.size, args.seed, args.starting_numbers, args.max_depth);
-    let board = generator.generate(&args.backend)?;
-    if let Some(playable) = generator.make_playable(&board) {
-        if let Some(destination) = &args.destination {
-            write_board(&destination.as_path(), &playable)?;
-        } else if args.raw {
-            println!("{}", board);
-            println!("{}", playable);
-        } else {
-            println!("{}", board.seed());
-            println!("{}", board.to_pretty_grid());
-            println!("{}", playable.to_pretty_grid());
-        }
+    let board = Board::generate(args.size, args.seed, args.backend.clone(), args.max_depth)?;
+    let playable = board.make_playable(args.starting_numbers);
+    if let Some(destination) = &args.destination {
+        write_board(&destination.as_path(), &playable)?;
+    } else if args.raw {
+        println!("{}", board);
+        println!("{}", playable);
+    } else {
+        println!("{}", board.seed());
+        println!("{}", board.to_pretty_grid());
+        println!("{}", playable.to_pretty_grid());
     }
     Ok(())
 }
