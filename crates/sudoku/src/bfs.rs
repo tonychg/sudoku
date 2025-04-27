@@ -4,6 +4,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter;
 
+#[allow(dead_code)]
 pub fn bfs<T, ID>(
     start: Vec<T>,
     id_fn: impl Fn(&T) -> ID,

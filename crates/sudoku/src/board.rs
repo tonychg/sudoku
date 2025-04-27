@@ -206,8 +206,7 @@ impl Board {
     /// Traversing in DFS order the solutions graph
     /// If limit is reached break the loop an return the limit
     pub fn count_solutions(&self, limit: usize, randomize: bool) -> usize {
-        let mut counter = 0;
-        for _ in dfs(
+        dfs(
             vec![Board::from_board(self)],
             |b| b.id(),
             |b| b.completed(),
@@ -218,13 +217,10 @@ impl Board {
                     b.neighbors()
                 }
             },
-        ) {
-            counter += 1;
-            if counter == limit {
-                break;
-            }
-        }
-        counter
+        )
+        .enumerate()
+        .take_while(|(i, _)| *i < limit)
+        .count()
     }
 
     pub fn generate(

@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
+use sudoku::Board;
+use sudoku::BoardBackend;
 
-use crate::board::Board;
-use crate::board::BoardBackend;
 use crate::file::write_board;
 
 #[derive(clap::Args, Clone, Debug)]
