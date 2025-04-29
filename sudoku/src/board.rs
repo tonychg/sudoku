@@ -46,9 +46,8 @@ impl Board {
     /// Backtrack all solutions
     /// If randomize is true, neighbors will be choosen randomly
     pub fn backtracking(&self, randomize: bool) -> impl Iterator<Item = Board> {
-        let root = vec![self.inner.clone()];
         dfs(
-            root,
+            vec![self.inner.clone()],
             |b| b.id(),
             |b| b.completed(),
             move |b| {
@@ -73,9 +72,8 @@ impl Board {
         max_depth: usize,
         randomize: bool,
     ) -> impl Iterator<Item = Board> {
-        let root = vec![self.inner.clone()];
         dfs_with_max_depth(
-            root,
+            vec![self.inner.clone()],
             |b| b.id(),
             |b| b.completed(),
             move |b| {
@@ -96,9 +94,8 @@ impl Board {
     /// Traversing in DFS order the solutions graph
     /// If limit is reached break the loop an return the limit
     pub fn count_solutions(&self, limit: usize, randomize: bool) -> usize {
-        let root = self.inner.clone();
         dfs(
-            vec![root],
+            vec![self.inner.clone()],
             |b| b.id(),
             |b| b.completed(),
             move |b| {

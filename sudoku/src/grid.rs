@@ -47,7 +47,7 @@ impl Grid {
         s.finish()
     }
 
-    pub fn next_empty(&self) -> Option<(usize, usize)> {
+    fn next_empty(&self) -> Option<(usize, usize)> {
         for (index, num) in self.digits.iter().enumerate() {
             if *num == 0 {
                 return Some((index % SIZE, index / SIZE));
