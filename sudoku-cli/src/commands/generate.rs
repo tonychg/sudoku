@@ -23,7 +23,7 @@ pub(crate) struct GenerateArgs {
     destination: Option<PathBuf>,
 }
 
-#[tracing::instrument]
+#[tracing::instrument(skip_all)]
 pub(crate) fn cmd_generate(args: &GenerateArgs) -> Result<()> {
     let board = Board::generate(args.seed, args.max_depth)?;
     let playable = board.make_playable(args.starting_numbers);

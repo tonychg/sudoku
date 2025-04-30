@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::time::Instant;
 
 use anyhow::Result;
 use sudoku::Board;
@@ -12,6 +13,9 @@ pub(crate) struct SolveArgs {
     /// Read board from stdin
     #[arg(short, long, default_value_t = false)]
     stdin: bool,
+    /// Use raw format to print the generated board
+    #[arg(short = 'r', long, default_value_t = false)]
+    raw: bool,
     /// Maximum iterations of complete board recursion
     #[arg(short, long)]
     max_iterations: Option<usize>,
@@ -20,16 +24,22 @@ pub(crate) struct SolveArgs {
     limit: Option<usize>,
 }
 
-#[tracing::instrument]
+#[tracing::instrument(skip_all)]
 pub fn cmd_solve(args: &SolveArgs) -> Result<()> {
     for board in list_boards(args.source.as_ref(), args.stdin)? {
-        dfs_solve_board(board);
+        let now = Instant::now();
+        dfs_solve_board(board, args.raw);
+        tracing::debug!("Solved in {} ms", now.elapsed().as_millis());
     }
     Ok(())
 }
 
-fn dfs_solve_board(board: Board) {
+fn dfs_solve_board(board: Board, raw: bool) {
     for (index, solution) in board.backtracking(false).enumerate() {
-        println!("{}\n{}", index, solution.to_pretty_grid());
+        if raw {
+            println!("{},{}", index, solution);
+        } else {
+            println!("{}\n{}", index, solution.to_pretty_grid());
+        }
     }
 }

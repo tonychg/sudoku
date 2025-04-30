@@ -11,7 +11,7 @@ pub(crate) struct ShowArgs {
     stdin: bool,
 }
 
-#[tracing::instrument]
+#[tracing::instrument(skip_all)]
 pub fn cmd_show(args: &ShowArgs) -> anyhow::Result<()> {
     for board in list_boards(args.source.as_ref(), args.stdin)? {
         println!("{}", board.to_pretty_grid());
