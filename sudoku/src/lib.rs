@@ -1,6 +1,7 @@
 pub(crate) mod bfs;
 mod board;
 pub(crate) mod dfs;
+mod distribution;
 mod grid;
 pub(crate) mod rng;
 

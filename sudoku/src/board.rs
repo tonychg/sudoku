@@ -44,7 +44,7 @@ impl Board {
     }
 
     /// Backtrack all solutions
-    /// If randomize is true, neighbors will be choosen randomly
+    /// If randomize is true, neighbors will be chosen randomly
     pub fn backtracking(&self, randomize: bool) -> impl Iterator<Item = Board> {
         dfs(
             vec![self.inner.clone()],
@@ -65,7 +65,7 @@ impl Board {
     }
 
     /// Backtrack all solutions
-    /// If randomize is true, neighbors will be choosen randomly
+    /// If randomize is true, neighbors will be chosen randomly
     /// Maximum depth parameter specify when branch will be cut
     pub fn backtracking_with_max_depth(
         &self,
@@ -130,24 +130,24 @@ impl Board {
     pub fn make_playable(&self, starting_numbers: usize) -> Self {
         let mut holes = Vec::new();
         let mut rng = rng::rng_from_seed(self.seed);
-        let mut playable = self.clone();
+        let mut playable_board = self.clone();
         let total = SIZE * SIZE;
         while holes.len() < total - starting_numbers {
             let index = rng.random_range(0..total);
             let (x, y) = (index % SIZE, index / SIZE);
-            if playable.inner.get_digit(x, y) != 0 {
-                holes.push((x, y, playable.inner.get_digit(x, y)));
-                playable.inner.set_digit(x, y, 0);
-                if playable.count_solutions(2, true) != 1 {
+            if playable_board.inner.get_digit(x, y) != 0 {
+                holes.push((x, y, playable_board.inner.get_digit(x, y)));
+                playable_board.inner.set_digit(x, y, 0);
+                if playable_board.count_solutions(2, true) != 1 {
                     if let Some((x, y, num)) = holes.pop() {
-                        playable.inner.set_digit(x, y, num);
+                        playable_board.inner.set_digit(x, y, num);
                     }
                 } else {
                     tracing::debug!("Current starting numbers {}", total - holes.len());
                 }
             }
         }
-        playable
+        playable_board
     }
 
     /// Pretty print the grid
@@ -156,7 +156,7 @@ impl Board {
     }
 
     pub fn seed(&self) -> u64 {
-        self.inner.seed
+        self.seed
     }
 
     fn new(seed: Option<u64>) -> Self {

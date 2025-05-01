@@ -241,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn test_grid_heuristic_quad_mutiple_replace() {
+    fn test_grid_heuristic_quad_multiple_replace() {
         let mut grid = setup_grid(vec![
             vec![0, 2, 3, 0, 0, 0, 0, 0, 0],
             vec![1, 5, 4, 0, 0, 0, 0, 0, 0],
