@@ -1,5 +1,7 @@
 SRC = main.c \
     board.c \
+    random.c \
+    backtracking.c \
 
 NAME      = sudoku
 OBJ       = $(SRC:.c=.o)
