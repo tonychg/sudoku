@@ -53,6 +53,7 @@ void list_init(list_t *list, void *data) {
   list->first->prev = list->first;
   list->first->next = list->first;
   list->first->data = (size_t)data;
+  list->size++;
 }
 
 /*
@@ -63,15 +64,18 @@ void list_push(list_t *list, void *data) {
     list_init(list, data);
   } else {
     list_node_t *node = (list_node_t *)malloc(sizeof(list_node_t));
-    list_node_t *last = list->first->prev;
+    node->prev = list->first->prev;
     node->next = list->first;
-    node->prev = last;
     node->data = (size_t)data;
+    if (list->size > 1) {
+      list->first->prev->next = node;
+    } else {
+      list->first->next = node;
+    }
     list->first->prev = node;
-    last->next = node;
     list->first = node;
+    list->size++;
   }
-  list->size++;
 }
 
 /*
@@ -88,18 +92,18 @@ void list_insert(list_t *list, void *data) {
     node->next = list->first;
     list->first->prev = node;
     node->data = (size_t)data;
+    list->size++;
   }
-  list->size++;
 }
 
 /*
  * Pop the first element of the list
  */
-size_t *list_pop(list_t *list) {
+size_t list_pop(list_t *list) {
   if (!list->first)
-    return NULL;
+    return -1;
   list_node_t *head = list->first;
-  size_t *data = &head->data;
+  size_t data = head->data;
   if (list->size > 1) {
     list_node_t *last = list->first->prev;
     list_node_t *next = list->first->next;

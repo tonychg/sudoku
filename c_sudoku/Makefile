@@ -1,30 +1,43 @@
-SRC = grid.c \
-    random.c \
-    heuristic.c \
-    backtracking.c \
-    dfs.c \
+SRC = board.c \
     list.c \
+    random.c \
+    dancing_links.c \
+
+SRC_MAIN = $(SRC)
+SRC_MAIN += main.c
+OBJ_MAIN = $(SRC_MAIN:.c=.o)
 
 NAME      = sudoku
 OBJ       = $(SRC:.c=.o)
 CC        = gcc -g
 RM        = rm -f
-TEST_ARGS = --test
+PROFILER  = gprof
 
+define run_test
+	$(eval $@_TEST = $(1)_test)
+	$(CC) -Wall -o ${$@_TEST} $(OBJ) ${$@_TEST}.c
+	printf "## Testing %s\n" ${$@_TEST}
+	./${$@_TEST}
+	$(RM) ./${$@_TEST}
+endef
+
+.PHONY:all
 all:    $(NAME)
 
-$(NAME):    $(OBJ)
-	$(CC) -Wall -o $(NAME) $(OBJ) main.c
+$(NAME):    $(OBJ_MAIN)
+	$(CC) -pg -Wall -o $(NAME) $(OBJ_MAIN)
 
 .PHONY:clean
 clean:
-	$(RM) $(OBJ)
+	$(RM) $(OBJ_MAIN)
 
-test: test-list
+test: $(OBJ)
+	@$(call run_test, "list")
+	@$(call run_test, "board")
+	@$(call run_test, "dancing_links")
 
-test-list:	$(OBJ)
-	$(CC) -Wall -o list_test $(OBJ) list_test.c
-	@./list_test
-	@rm -f ./list_test
+profile: all
+	./$(NAME)
+	$(PROFILER) $(NAME)
 
-re: clean all
+re: clean test all

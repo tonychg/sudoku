@@ -20,6 +20,6 @@ void list_insert(list_t *list, void *data);
 void list_del(list_t *list, void *data);
 void list_print(list_t *list);
 void list_print_reverse(list_t *list);
-size_t *list_pop(list_t *list);
+size_t list_pop(list_t *list);
 
 #endif

@@ -21,8 +21,8 @@ void test_list_push() {
   list_push(list, (void *)(uintptr_t)p3);
   assert(list->size == 3);
   assert(list->first->data == p3);
-  assert(list->first->prev->data == p1);
   assert(list->first->next->data == p2);
+  assert(list->first->prev->data == p1);
   printf("[OK] test_list_push\n");
 }
 
@@ -64,8 +64,9 @@ void test_list_pop() {
   list_push(list, (void *)(uintptr_t)p1);
   list_push(list, (void *)(uintptr_t)p2);
   list_push(list, (void *)(uintptr_t)p3);
-  size_t *elem = list_pop(list);
-  assert(*elem == p3);
+  int elem = list_pop(list);
+  assert(list->size == 2);
+  assert(elem == p3);
   assert(list->first->data == p2);
   assert(list->first->prev->data == p1);
   printf("[OK] test_list_pop\n");
@@ -84,7 +85,6 @@ void test_complete() {
 }
 
 int main() {
-  printf("--> Testing list.h\n");
   test_list_new();
   test_list_push();
   test_list_insert();

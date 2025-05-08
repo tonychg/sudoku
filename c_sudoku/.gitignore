@@ -1,3 +1,5 @@
 *.o
 sudoku
 list_test
+gmon.out
+test.stats
