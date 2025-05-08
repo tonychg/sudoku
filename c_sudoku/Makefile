@@ -1,7 +1,9 @@
 SRC = main.c \
-    board.c \
+    grid.c \
     random.c \
+    heuristic.c \
     backtracking.c \
+    dfs.c \
 
 NAME      = sudoku
 OBJ       = $(SRC:.c=.o)

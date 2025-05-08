@@ -1,6 +1,7 @@
 #include "random.h"
-#include "board.h"
+#include "grid.h"
+#include <time.h>
 
 int random_index(void) { return rand() % SIZE; }
 
-int random_seed(void) { return rand() % 2147483647; }
+int random_seed(void) { return time(NULL); }
