@@ -19,6 +19,8 @@ typedef struct board {
 } board_t;
 
 void board_print(board_t *b);
+char *board_export(board_t *b);
+void board_write(board_t *b, int seed, char *dest);
 board_t *board_init();
 board_t *board_clone(board_t *b);
 board_t *board_backtracking(board_t *b);

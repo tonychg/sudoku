@@ -14,10 +14,28 @@ board_t *board_init() {
   return b;
 }
 
+char *board_export(board_t *b) {
+  char *bstr = (char *)calloc(LENGTH, sizeof(char));
+  for (int i = 0; i < LENGTH; i++) {
+    bstr[i] = b->grid[i] + '0';
+  }
+  return bstr;
+}
+
+void board_write(board_t *b, int seed, char *dest) {
+  FILE *fptr = fopen(dest, "w");
+  char *bstr = board_export(b);
+  if (!fptr)
+    return;
+  fprintf(fptr, "%d:%s\n", seed, bstr);
+  fclose(fptr);
+  free(bstr);
+}
+
 void board_print(board_t *b) {
-  for (int i = 0; i < LENGTH; i++)
-    printf("%c", b->grid[i] + '0');
-  printf("\n");
+  char *bstr = board_export(b);
+  printf("%s\n", bstr);
+  free(bstr);
 }
 
 void board_pretty_print(board_t *b) {
