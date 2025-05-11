@@ -1,50 +1,51 @@
 #include "board.h"
+#include "cli.h"
 #include "sudoku.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 
-void command_generate(char *dest) {
-  srand(time(NULL));
-  int seed = rand();
-  srand(seed);
+void command_generate(struct args_generate *args) {
+  srand(args->seed);
   board_t *b = board_init();
-  board_t *filled = board_backtracking(b);
+  board_t *filled;
+  if (!strcmp(args->mode, "dfs")) {
+    filled = board_backtracking(b);
+  } else if (!strcmp(args->mode, "recursive")) {
+    board_backtracking_recursive(filled);
+  }
   if (filled) {
-    if (!dest) {
-      printf("%d:", seed);
+    if (!args->dest && args->human_readable) {
+      board_pretty_print(filled);
+    } else if (!args->dest && !args->human_readable) {
+      printf("%d:", args->seed);
       board_print(filled);
-    } else {
-      board_write(filled, seed, dest);
+    } else if (args->dest) {
+      board_write(filled, args->seed, args->dest);
     }
   }
+  free(args);
 }
 
-void command_sparse(char *dest) {
+void command_sparse(struct args_sparse *args) {
   int **matrix = sudoku_sparse_create();
-  sudoku_sparse_write(matrix, dest);
+  sudoku_sparse_write(matrix, args->dest);
+  free(args);
+}
+
+void command_run(struct command *cmd) {
+  if (!strcmp(cmd->name, "generate")) {
+    command_generate(cmd->args);
+  }
+  if (!strcmp(cmd->name, "sparse")) {
+    command_sparse(cmd->args);
+  }
+  free(cmd);
 }
 
 int main(int argc, char **argv) {
-  if (argc <= 1) {
-    printf("Usage: sudoku [sparse,generate] [DESTINATION]\n");
-  } else if (!strcmp(argv[1], "sparse")) {
-    char *dest;
-    if (argc != 3) {
-      printf("Use default output m.out\n");
-      dest = "m.out";
-    } else {
-      dest = argv[2];
-    }
-    command_sparse(dest);
-  } else if (!strcmp(argv[1], "generate")) {
-    if (argc != 3) {
-      command_generate(NULL);
-    } else {
-      command_generate(argv[2]);
-    }
-  }
+  struct command *cmd = parse_args(argc, argv);
+  command_run(cmd);
   exit(0);
 }

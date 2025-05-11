@@ -3,6 +3,7 @@ SRC = board.c \
     random.c \
     links.c \
     sudoku.c \
+    cli.c \
 
 SRC_MAIN = $(SRC)
 SRC_MAIN += main.c
