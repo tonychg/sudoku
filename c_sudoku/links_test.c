@@ -1,9 +1,7 @@
 #include "links.h"
-// #include "string.h"
 #include "random.h"
 #include "sudoku.h"
 #include <stdio.h>
-#include <stdlib.h>
 
 void debug_column(struct links *head, int x) {
   int i;
@@ -46,104 +44,11 @@ void debug_headers(struct links *head) {
   }
 }
 
-int **create_test_matrix_1() {
-  // Solution must be rows=1,3,5
-  int **matrix = (int **)malloc(sizeof(int *) * 7);
-  for (int i = 0; i < 7; i++) {
-    matrix[i] = (int *)calloc(6, sizeof(int));
-  }
-  matrix[0][0] = 1;
-  matrix[0][1] = 1;
-  matrix[1][4] = 1;
-  matrix[1][5] = 1;
-  matrix[2][3] = 1;
-  matrix[2][4] = 1;
-  matrix[3][0] = 1;
-  matrix[3][1] = 1;
-  matrix[3][2] = 1;
-  matrix[4][2] = 1;
-  matrix[4][3] = 1;
-  matrix[5][3] = 1;
-  matrix[5][4] = 1;
-  matrix[6][0] = 1;
-  matrix[6][2] = 1;
-  matrix[6][4] = 1;
-  matrix[6][5] = 1;
-  for (int j = 0; j < 6; j++) {
-    for (int i = 0; i < 7; i++) {
-      if (!i && !j) {
-        printf("  ");
-        for (int x = 0; x < 7; x++) {
-          printf("%d", x);
-        }
-        printf("\n");
-      }
-      if (!i) {
-        printf("%d ", j);
-      }
-      printf("%d", matrix[i][j]);
-    }
-    printf("\n");
-  }
-  printf("Solution must be rows=1,3,5\n");
-  return matrix;
-}
-
-int **create_test_matrix_2() {
-  // Solution must be rows=0,3,4
-  int **matrix = (int **)malloc(sizeof(int *) * 7);
-  for (int i = 0; i < 7; i++) {
-    matrix[i] = (int *)calloc(6, sizeof(int));
-  }
-  matrix[0][1] = 1;
-  matrix[0][3] = 1;
-  matrix[1][2] = 1;
-  matrix[1][4] = 1;
-  matrix[2][0] = 1;
-  matrix[2][2] = 1;
-  matrix[3][1] = 1;
-  matrix[3][3] = 1;
-  matrix[3][5] = 1;
-  matrix[4][0] = 1;
-  matrix[4][5] = 1;
-  matrix[5][0] = 1;
-  matrix[5][2] = 1;
-  // matrix[5][5] = 1;
-  matrix[6][1] = 1;
-  matrix[6][4] = 1;
-  matrix[6][5] = 1;
-  for (int j = 0; j < 6; j++) {
-    for (int i = 0; i < 7; i++) {
-      if (!i && !j) {
-        printf("  ");
-        for (int x = 0; x < 7; x++) {
-          printf("%d", x);
-        }
-        printf("\n");
-      }
-      if (!i) {
-        printf("%d ", j);
-      }
-      printf("%d", matrix[i][j]);
-    }
-    printf("\n");
-  }
-  printf("Solution must be rows=0,3,4\n");
-  return matrix;
-}
-
 int main() {
   int **matrix = sudoku_sparse_create();
-  int seed = random_seed();
-  srand(seed);
-  // int **matrix = create_test_matrix_1();
   struct links *head = links_exact_cover(MAX_WIDTH);
   struct plist *o = partial_new();
-  int *solutions = (int *)malloc(sizeof(int));
-  (*solutions) = 0;
-  printf("Add nodes\n");
   links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
-  // links_check(head);
   printf("##### Start dancing #####\n");
   links_dancing(head, o, 0, 100000);
   links_destroy(head);

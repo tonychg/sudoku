@@ -1,6 +1,19 @@
 #include "sudoku.h"
+#include "links.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+void shuffle(int **array, size_t n) {
+  if (n > 1) {
+    size_t i;
+    for (i = 0; i < n - 1; i++) {
+      size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
+      int *t = array[j];
+      array[j] = array[i];
+      array[i] = t;
+    }
+  }
+}
 
 int **sudoku_sparse_create() {
   int **matrix = (int **)malloc(MAX_WIDTH * sizeof(int *));
@@ -59,4 +72,112 @@ void sudoku_sparse_write(int **matrix, char *dest) {
     free(line);
   }
   fclose(fptr);
+}
+
+int *sudoku_grid_stdin(void) {
+  char buf[LENGTH + 2];
+  int *grid = (int *)calloc(LENGTH, sizeof(int));
+  fgets(buf, LENGTH + 2, stdin);
+  for (int i = 0; i < LENGTH; i++) {
+    grid[i] = buf[i] - '0';
+  }
+  return grid;
+}
+
+int *sudoku_grid_from_str(char *str) {
+  int *grid = (int *)calloc(LENGTH, sizeof(int));
+  for (int i = 0; i < LENGTH; i++) {
+    grid[i] = str[i] - '0';
+  }
+  return grid;
+}
+
+void sudoku_grid_print(int *grid, int *solution) {
+  int number;
+  char line[] = "+---+---+---+";
+
+  for (int y = 0; y < SIZE; y++) {
+    if (y == 0) {
+      printf("%s\n", line);
+    }
+    for (int x = 0; x < SIZE; x++) {
+      int index = y * SIZE + x;
+      if (solution != NULL) {
+        number = grid[index] ? grid[index] : solution[index];
+      } else {
+        number = grid[index];
+      }
+      char num_char = number + '0';
+      if (number == 0) {
+        num_char = ' ';
+      }
+      if (x % TIER == 2) {
+        printf("%c|", num_char);
+      } else if (x == 0) {
+        printf("|%c", num_char);
+      } else if (y % TIER == 2 && x == SIZE - 1) {
+        printf("%c", num_char);
+      } else {
+        printf("%c", num_char);
+      }
+    }
+    printf("\n");
+    if (y % TIER == 2) {
+      printf("%s\n", line);
+    }
+  }
+}
+
+int sudoku_update_matrix(struct links *head, int *grid, struct plist *o) {
+  int k = 0;
+  for (int i = 0; i < LENGTH; i++) {
+    if (grid[i]) {
+      int x = i % SIZE;
+      int y = i / SIZE;
+      int number = grid[i];
+      int row_index = y * 81 + x * 9 + (number - 1);
+      o->p[k] = links_select_row(head, row_index);
+      o->size++;
+      k++;
+    }
+  }
+  return k;
+}
+
+int **sudoku_build_grid() {
+  int y;
+  int **grid = (int **)malloc(sizeof(int *));
+  for (y = 0; y < SIZE; y++) {
+    grid[y] = (int *)calloc(SIZE, sizeof(int));
+  }
+  return grid;
+}
+
+void sudoku_solve(int *grid, int limit) {
+  struct links *head = links_exact_cover(MAX_WIDTH);
+  struct plist *o = partial_new();
+  struct slist *s;
+  int **matrix = sudoku_sparse_create();
+  links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
+  int k = sudoku_update_matrix(head, grid, o);
+  links_dancing(head, o, k, -1);
+  for (s = o->s; s != NULL; s = s->next) {
+    sudoku_grid_print(grid, s->grid);
+  }
+  links_destroy(head);
+  partial_destroy(o);
+}
+
+void sudoku_generate(int limit) {
+  struct links *head = links_exact_cover(MAX_WIDTH);
+  struct plist *o = partial_new();
+  struct slist *s;
+  int **matrix = sudoku_sparse_create();
+  links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
+  links_dancing(head, o, 0, limit);
+  for (s = o->s; s != NULL; s = s->next) {
+    sudoku_grid_print(s->grid, NULL);
+  }
+  links_destroy(head);
+  partial_destroy(o);
 }

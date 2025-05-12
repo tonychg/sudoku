@@ -13,5 +13,10 @@ static const int CONSTRAINT_BOX_NUMBER = 3;
 int **sudoku_sparse_create();
 void sudoku_sparse_print(int **matrix, int p);
 void sudoku_sparse_write(int **matrix, char *dest);
+int *sudoku_grid_stdin(void);
+int *sudoku_grid_from_str(char *str);
+void sudoku_grid_print(int *grid, int *solution);
+void sudoku_solve(int *grid, int limit);
+void sudoku_generate(int limit);
 
 #endif

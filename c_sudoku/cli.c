@@ -45,6 +45,30 @@ struct args_sparse *parse_args_sparse(int argc, char **argv) {
   return args;
 }
 
+struct args_solve *parse_args_solve(int argc, char **argv) {
+  struct args_solve *args =
+      (struct args_solve *)malloc(sizeof(struct args_solve));
+  args->grid = NULL;
+  args->from_stdin = false;
+  args->limit = -1;
+  if (argc <= 2) {
+    return args;
+  }
+  for (int i = 2; i < argc; i++) {
+    if ((!strcmp(argv[i], "--grid") || !strcmp(argv[i], "-g")) &&
+        i + 1 < argc) {
+      args->grid = argv[i + 1];
+    }
+    if (!strcmp(argv[i], "--stdin") || !strcmp(argv[i], "-s")) {
+      args->from_stdin = true;
+    }
+    if (!strcmp(argv[i], "--limit") || !strcmp(argv[i], "-l")) {
+      args->limit = atoi(argv[i + 1]);
+    }
+  }
+  return args;
+}
+
 struct command *parse_command(int argc, char **argv) {
   struct command *cmd = (struct command *)malloc(sizeof(struct command));
   cmd->name = argv[1];
@@ -54,13 +78,17 @@ struct command *parse_command(int argc, char **argv) {
   if (!strcmp(cmd->name, "generate")) {
     cmd->args = parse_args_generate(argc, argv);
   }
+  if (!strcmp(cmd->name, "solve")) {
+    cmd->args = parse_args_solve(argc, argv);
+  }
   return cmd;
 }
 
 struct command *parse_args(int argc, char **argv) {
-  if (argc <= 1) {
-    printf("Usage: sudoku [sparse,generate] [-d/--destination] [-h/--human] "
-           "[-m/--mode]\n");
+  if (argc < 2) {
+    printf(
+        "Usage: sudoku [sparse,generate,solve] [-d/--destination] [-h/--human] "
+        "[-m/--mode] [-s/--stdin] [-g/--grid]\n");
     return NULL;
   } else {
     return parse_command(argc, argv);

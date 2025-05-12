@@ -12,8 +12,15 @@ struct links {
     int size;
 };
 
+struct slist {
+    int *grid;
+    struct slist *next;
+};
+
 struct plist {
+    int size;
     int solutions;
+    struct slist *s;
     struct links *p[81];
 };
 
@@ -22,7 +29,12 @@ void links_add_nodes(struct links *head, int width, int height, int **matrix);
 void links_destroy(struct links *head);
 void links_dancing(struct links *head, struct plist *o, int k, int limit);
 void links_check(struct links *head);
+void links_cover(struct links *column);
+void links_uncover(struct links *column);
+struct links *links_select_row(struct links *head, int index);
 
 struct plist *partial_new();
+void partial_destroy(struct plist *o);
+
 
 #endif

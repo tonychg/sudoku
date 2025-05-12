@@ -182,24 +182,28 @@ struct links *links_select_column(struct links *head) {
   return selected;
 }
 
-struct links *links_select_random_column(struct links *head) {
-  int n = rand() % head->size;
-  struct links *header;
-  int i;
-  for (i = 0, header = head->right; header != head;
-       header = header->right, i++) {
-    if (i == n) {
-      break;
+struct links *links_select_row(struct links *head, int index) {
+  struct links *column, *row, *node, *tmp;
+  for (column = head->right; column != head; column = column->right) {
+    for (row = column->down; row != column; row = row->down) {
+      if (row->row == index) {
+        node = row;
+        do {
+          links_cover(node->column);
+          node = node->right;
+        } while (node != row);
+        break;
+      }
     }
   }
-  return header;
+  return row;
 }
 
 void partial_print_grid(struct plist *o) {
   int i;
   int grid[9][9] = {0};
   struct links *tmp;
-  for (int i = 0; i < 81; i++) {
+  for (int i = 0; i < o->size; i++) {
     tmp = o->p[i];
     int number = tmp->row % 9 + 1;
     int y = tmp->row / 81;
@@ -212,27 +216,54 @@ void partial_print_grid(struct plist *o) {
     }
     printf("\n");
   }
+  printf("\n");
+}
+
+void partial_print(struct plist *o) {
+  for (int i = 0; i < o->solutions; i++) {
+    printf("row=%d col=%d\n", o->p[i]->row, o->p[i]->col);
+  }
+}
+
+void add_solution(struct plist *o) {
+  struct links *tmp;
+  struct slist *new = (struct slist *)malloc(sizeof(struct slist *));
+  int *grid = (int *)calloc(81, sizeof(int));
+  for (int i = 0; i < o->size; i++) {
+    tmp = o->p[i];
+    grid[tmp->row / 9] = tmp->row % 9 + 1;
+  }
+  new->grid = grid;
+  if (!o->s) {
+    new->next = NULL;
+    o->s = new;
+  } else {
+    new->next = o->s->next;
+    o->s = new;
+  }
+  o->solutions++;
 }
 
 void links_dancing(struct links *head, struct plist *o, int k, int limit) {
   struct links *column, *row, *j, *ok, *r;
   if (head->right == head) {
-    printf("######## Found solution %d ########\n", o->solutions);
-    printf("After k=%d\n", k);
-    partial_print_grid(o);
-    o->solutions++;
+    // printf("######## Found solution %d ########\n", o->solutions);
+    // printf("After k=%d\n", k);
+    add_solution(o);
     return;
   }
   column = links_select_column(head);
   links_cover(column);
   for (row = column->down; row != column; row = row->down) {
     o->p[k] = row;
+    o->size++;
     for (j = row->right; j != row; j = j->right) {
       links_cover(j->column);
     }
     links_dancing(head, o, k + 1, limit);
     row = o->p[k];
     o->p[k] = NULL;
+    o->size--;
     column = row->column;
     for (j = row->left; j != row; j = j->left) {
       links_uncover(j->column);
@@ -248,5 +279,17 @@ void links_dancing(struct links *head, struct plist *o, int k, int limit) {
 struct plist *partial_new() {
   struct plist *p = (struct plist *)malloc(sizeof(struct plist));
   p->solutions = 0;
+  p->s = NULL;
   return p;
+}
+
+void partial_destroy(struct plist *o) {
+  struct slist *s;
+  while (o->s != NULL) {
+    s = o->s;
+    o->s = o->s->next;
+    free(s->grid);
+    free(s);
+  }
+  free(o);
 }

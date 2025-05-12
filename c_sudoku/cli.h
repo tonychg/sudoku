@@ -19,6 +19,12 @@ struct args_sparse {
   char *dest;
 };
 
+struct args_solve {
+  bool from_stdin;
+  int limit;
+  char *grid;
+};
+
 struct command *parse_args(int argc, char **argv);
 
 #endif
