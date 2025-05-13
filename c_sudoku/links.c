@@ -40,16 +40,6 @@ void links_free(struct links *head) {
   free(head);
 }
 
-void links_destroy(struct links *head, struct plist *o) {
-  struct links *tmp, *row;
-  for (tmp = head->right; tmp != head; tmp = tmp->right) {
-    for (row = tmp->up; row->up != tmp; row = row->up) {
-      free(row);
-    }
-    // free(tmp);
-  }
-}
-
 int count_columns(struct links *head) {
   struct links *column;
   int counter = 0;
@@ -207,6 +197,8 @@ void links_add_nodes(struct links *head, int width, int height, int **matrix) {
         }
         new->col = x;
         new->row = y;
+        new->indice = y / 9;
+        new->n = y % 9;
         new->column = header;
         header->size++;
       }
@@ -280,7 +272,7 @@ struct links *links_random_column(struct links *head) {
 }
 
 struct links *links_select_row(struct links *head, int index) {
-  struct links *column, *row, *node, *tmp;
+  struct links *column, *row, *node;
   for (column = head->right; column != head; column = column->right) {
     for (row = column->down; row != column; row = row->down) {
       if (row->row == index) {
@@ -319,7 +311,7 @@ void add_solution(struct plist *o) {
 
 void links_dancing(struct links *head, struct plist *o, int k, int limit,
                    int determinisic) {
-  struct links *column, *row, *j, *ok, *r;
+  struct links *column, *row, *j;
   if (head->right == head) {
     add_solution(o);
   }

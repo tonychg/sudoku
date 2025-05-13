@@ -4,6 +4,69 @@
 #include <stdlib.h>
 #include <string.h>
 
+int **sudoku_sparse_build(int *grid) {
+  int j, indice, number, row, col, box, n, s = SIZE / 3;
+  int **matrix = (int **)malloc(MAX_HEIGHT * sizeof(int *));
+  for (j = 0; j < MAX_HEIGHT; j++) {
+    matrix[j] = (int *)calloc(MAX_WIDTH, sizeof(int));
+  }
+  for (j = 0; j < MAX_HEIGHT; j++) {
+    number = j % SIZE;
+    indice = j / SIZE;
+    row = indice % SIZE;
+    col = indice / SIZE;
+    box = (row / s * s + col / s) * SIZE;
+    matrix[j][indice] = number + 1;
+    matrix[j][number + (col * SIZE) + LENGTH] = number + 1;
+    matrix[j][number + (row * SIZE) + LENGTH * 2] = number + 1;
+    matrix[j][number + box + LENGTH * 3] = number + 1;
+  }
+  if (grid) {
+    for (indice = 0; indice < LENGTH; indice++) {
+      if (grid[indice]) {
+        number = grid[indice];
+        row = indice / SIZE;
+        col = indice % SIZE;
+        box = (row / s * s + col / s) * SIZE;
+        j = indice * SIZE;
+        // for (n = 0; n < SIZE; n++) {
+        //   matrix[j + n][number + (col * SIZE) + LENGTH] = 0;
+        //   matrix[j + n][number + (row * SIZE) + LENGTH * 2] = 0;
+        //   matrix[j + n][number + box + LENGTH * 3] = 0;
+        // }
+      }
+    }
+  }
+  return matrix;
+}
+
+void sudoku_print_matrix_constraint(int **matrix, int constraint) {
+  for (int j = 0; j < MAX_HEIGHT; j++) {
+    for (int i = 0; i < LENGTH; i++) {
+      int offset = constraint * LENGTH;
+      if (matrix[j][i + offset]) {
+        printf("%d", matrix[j][i + offset]);
+      } else {
+        printf(" ");
+      }
+    }
+    printf("\n");
+  }
+}
+
+void sudoku_print_matrix(int **matrix) {
+  for (int j = 0; j < MAX_HEIGHT; j++) {
+    for (int i = 0; i < MAX_WIDTH; i++) {
+      if (matrix[j][i]) {
+        printf("%d", matrix[j][i]);
+      } else {
+        printf(" ");
+      }
+    }
+    printf("\n");
+  }
+}
+
 int **sudoku_sparse_create() {
   int **matrix = (int **)malloc(MAX_WIDTH * sizeof(int *));
   for (int x = 0; x < MAX_WIDTH; x++) {
@@ -164,8 +227,8 @@ void sudoku_solve(int *grid, int limit) {
   int **matrix = sudoku_sparse_create();
   links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
   sudoku_sparse_destroy(matrix);
-  int k = sudoku_update_matrix(head, grid, o);
-  links_dancing(head, o, k, limit, true);
+  // int k = sudoku_update_matrix(head, grid, o);
+  links_dancing(head, o, 0, limit, true);
   for (s = o->s; s != NULL; s = s->next) {
     sudoku_grid_print(grid, s->grid);
   }
@@ -175,13 +238,12 @@ void sudoku_solve(int *grid, int limit) {
 int sudoku_count_solution(int *grid) {
   struct links *head = links_exact_cover(MAX_WIDTH);
   struct plist *o = partial_new();
-  struct slist *s;
   int solutions;
   int **matrix = sudoku_sparse_create();
   links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
   sudoku_sparse_destroy(matrix);
-  int k = sudoku_update_matrix(head, grid, o);
-  links_dancing(head, o, k, 2, 1);
+  // int k = sudoku_update_matrix(head, grid, o);
+  links_dancing(head, o, 0, 2, 1);
   solutions = o->solutions;
   partial_destroy(o);
   links_free(head);
@@ -197,7 +259,6 @@ int sudoku_next_random(int *grid) {
 }
 
 bool sudoku_make_playable(int *grid, int clues) {
-  int index;
   if (!clues) {
     return true;
   }
@@ -221,15 +282,14 @@ int *sudoku_generate_complete() {
   int *grid = (int *)calloc(LENGTH, sizeof(int));
   struct links *head = links_exact_cover(MAX_WIDTH);
   struct plist *o = partial_new();
-  struct slist *s;
-  int **matrix = sudoku_sparse_create();
+  int **matrix = sudoku_sparse_create(NULL);
   links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
   sudoku_sparse_destroy(matrix);
   printf("Run X algorithm on empty grid\n");
   links_dancing(head, o, 0, 1, 0);
   memcpy(grid, o->s->grid, LENGTH * sizeof(int));
   partial_destroy(o);
-  links_destroy(head, o);
+  links_free(head);
   return grid;
 }
 

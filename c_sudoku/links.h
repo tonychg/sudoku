@@ -12,6 +12,8 @@ struct links {
     int row;
     int col;
     int size;
+    int indice;
+    int n;
 };
 
 struct slist {
@@ -28,7 +30,6 @@ struct plist {
 
 struct links *links_exact_cover(int width);
 void links_add_nodes(struct links *head, int width, int height, int **matrix);
-void links_destroy(struct links *head, struct plist *o);
 void links_free(struct links *head);
 void links_dancing(struct links *head, struct plist *o, int k, int limit,
                    int deterministic);

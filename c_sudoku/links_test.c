@@ -45,11 +45,8 @@ void debug_headers(struct links *head) {
 }
 
 int main() {
-  int **matrix = sudoku_sparse_create();
+  int **matrix = sudoku_sparse_create(NULL);
   struct links *head = links_exact_cover(MAX_WIDTH);
   struct plist *o = partial_new();
   links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
-  printf("##### Start dancing #####\n");
-  links_dancing(head, o, 0, 100000);
-  links_destroy(head);
 }

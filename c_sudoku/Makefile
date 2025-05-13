@@ -29,10 +29,10 @@ endef
 all:    $(NAME)
 
 $(NAME):    $(OBJ_MAIN)
-	$(CC) -pg -Wall -o $(BIN)/$(NAME) $(OBJ_MAIN)
+	$(CC) -Wall -o $(BIN)/$(NAME) $(OBJ_MAIN)
 
 debug:      $(OBJ_MAIN)
-	$(CC) -pg -Wall -o $(BIN)/$(DEBUG) $(OBJ_MAIN)
+	$(CC) -Wall -o $(BIN)/$(DEBUG) $(OBJ_MAIN)
 
 .PHONY:clean
 clean:
@@ -43,6 +43,7 @@ test: $(OBJ)
 	@$(call run_test, "list")
 	@$(call run_test, "board")
 	@$(call run_test, "links")
+	# @$(call run_test, "sudoku")
 
 profile: all
 	./$(NAME)
