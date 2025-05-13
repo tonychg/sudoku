@@ -3,18 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void shuffle(int **array, size_t n) {
-  if (n > 1) {
-    size_t i;
-    for (i = 0; i < n - 1; i++) {
-      size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
-      int *t = array[j];
-      array[j] = array[i];
-      array[i] = t;
-    }
-  }
-}
-
 int **sudoku_sparse_create() {
   int **matrix = (int **)malloc(MAX_WIDTH * sizeof(int *));
   for (int x = 0; x < MAX_WIDTH; x++) {
@@ -174,10 +162,9 @@ void sudoku_generate(int limit) {
   struct slist *s;
   int **matrix = sudoku_sparse_create();
   links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
-  links_dancing(head, o, 0, limit);
-  for (s = o->s; s != NULL; s = s->next) {
+  links_dancing_non_deterministic(head, o, 0, limit);
+  for (s = o->s; s != NULL; s = s->next)
     sudoku_grid_print(s->grid, NULL);
-  }
   links_destroy(head);
   partial_destroy(o);
 }

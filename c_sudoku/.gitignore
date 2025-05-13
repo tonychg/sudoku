@@ -1,4 +1,4 @@
 *.o
-sudoku
+bin/*
 .tests
 gmon.out

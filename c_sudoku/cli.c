@@ -9,8 +9,8 @@ struct args_generate *parse_args_generate(int argc, char **argv) {
       (struct args_generate *)malloc(sizeof(struct args_generate));
   args->human_readable = false;
   args->seed = random_seed();
+  args->limit = 1;
   args->dest = NULL;
-  args->mode = "dfs";
   if (argc <= 2) {
     return args;
   }
@@ -26,9 +26,9 @@ struct args_generate *parse_args_generate(int argc, char **argv) {
         i + 1 < argc) {
       args->seed = atoi(argv[i + 1]);
     }
-    if ((!strcmp(argv[i], "--mode") || !strcmp(argv[i], "-m")) &&
+    if ((!strcmp(argv[i], "--limit") || !strcmp(argv[i], "-l")) &&
         i + 1 < argc) {
-      args->mode = argv[i + 1];
+      args->limit = atoi(argv[i + 1]);
     }
   }
   return args;

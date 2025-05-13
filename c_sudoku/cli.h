@@ -11,8 +11,8 @@ struct command {
 struct args_generate {
   char *dest;
   bool human_readable;
-  char *mode;
   int seed;
+  int limit;
 };
 
 struct args_sparse {

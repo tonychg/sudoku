@@ -10,6 +10,8 @@ SRC_MAIN += main.c
 OBJ_MAIN = $(SRC_MAIN:.c=.o)
 
 NAME      = sudoku
+DEBUG	  = debug
+BIN       = bin
 OBJ       = $(SRC:.c=.o)
 CC        = gcc -g
 RM        = rm -f
@@ -27,7 +29,10 @@ endef
 all:    $(NAME)
 
 $(NAME):    $(OBJ_MAIN)
-	$(CC) -pg -Wall -o $(NAME) $(OBJ_MAIN)
+	$(CC) -pg -Wall -o $(BIN)/$(NAME) $(OBJ_MAIN)
+
+debug:      $(OBJ_MAIN)
+	$(CC) -pg -Wall -o $(BIN)/$(DEBUG) $(OBJ_MAIN)
 
 .PHONY:clean
 clean:
