@@ -12,7 +12,7 @@ struct args_generate {
   char *dest;
   bool human_readable;
   int seed;
-  int limit;
+  int clues;
 };
 
 struct args_sparse {

@@ -2,6 +2,7 @@
 #include "links.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int **sudoku_sparse_create() {
   int **matrix = (int **)malloc(MAX_WIDTH * sizeof(int *));
@@ -28,6 +29,13 @@ int **sudoku_sparse_create() {
     }
   }
   return matrix;
+}
+
+void sudoku_sparse_destroy(int **matrix) {
+  for (int x = 0; x < MAX_WIDTH; x++) {
+    free(matrix[x]);
+  }
+  free(matrix);
 }
 
 void sudoku_sparse_print(int **matrix, int p) {
@@ -78,6 +86,14 @@ int *sudoku_grid_from_str(char *str) {
     grid[i] = str[i] - '0';
   }
   return grid;
+}
+
+char *sudoku_grid_to_str(int *grid) {
+  char *str = (char *)calloc(LENGTH, sizeof(char));
+  for (int i = 0; i < LENGTH; i++) {
+    str[i] = grid[i] + '0';
+  }
+  return str;
 }
 
 void sudoku_grid_print(int *grid, int *solution) {
@@ -147,24 +163,92 @@ void sudoku_solve(int *grid, int limit) {
   struct slist *s;
   int **matrix = sudoku_sparse_create();
   links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
+  sudoku_sparse_destroy(matrix);
   int k = sudoku_update_matrix(head, grid, o);
-  links_dancing(head, o, k, -1);
+  links_dancing(head, o, k, limit, true);
   for (s = o->s; s != NULL; s = s->next) {
     sudoku_grid_print(grid, s->grid);
   }
-  links_destroy(head);
   partial_destroy(o);
 }
 
-void sudoku_generate(int limit) {
+int sudoku_count_solution(int *grid) {
+  struct links *head = links_exact_cover(MAX_WIDTH);
+  struct plist *o = partial_new();
+  struct slist *s;
+  int solutions;
+  int **matrix = sudoku_sparse_create();
+  links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
+  sudoku_sparse_destroy(matrix);
+  int k = sudoku_update_matrix(head, grid, o);
+  links_dancing(head, o, k, 2, 1);
+  solutions = o->solutions;
+  partial_destroy(o);
+  links_free(head);
+  return solutions;
+}
+
+int sudoku_next_random(int *grid) {
+  int i;
+  do {
+    i = rand() % LENGTH;
+  } while (grid[i] == 0);
+  return i;
+}
+
+bool sudoku_make_playable(int *grid, int clues) {
+  int index;
+  if (!clues) {
+    return true;
+  }
+  for (int i = 0; i < LENGTH; i++) {
+    if (grid[i]) {
+      int number = grid[i];
+      grid[i] = 0;
+      // printf("%d\n", i);
+      if (sudoku_count_solution(grid) == 1) {
+        if (sudoku_make_playable(grid, clues - 1)) {
+          return true;
+        }
+      }
+      grid[i] = number;
+    }
+  }
+  return false;
+}
+
+int *sudoku_generate_complete() {
+  int *grid = (int *)calloc(LENGTH, sizeof(int));
   struct links *head = links_exact_cover(MAX_WIDTH);
   struct plist *o = partial_new();
   struct slist *s;
   int **matrix = sudoku_sparse_create();
   links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
-  links_dancing_non_deterministic(head, o, 0, limit);
-  for (s = o->s; s != NULL; s = s->next)
-    sudoku_grid_print(s->grid, NULL);
-  links_destroy(head);
+  sudoku_sparse_destroy(matrix);
+  printf("Run X algorithm on empty grid\n");
+  links_dancing(head, o, 0, 1, 0);
+  memcpy(grid, o->s->grid, LENGTH * sizeof(int));
   partial_destroy(o);
+  links_destroy(head, o);
+  return grid;
+}
+
+void sudoku_generate(int clues, bool human) {
+  int *base_grid, *holed;
+  base_grid = sudoku_generate_complete();
+  printf("Complete board generated\n");
+  holed = (int *)calloc(LENGTH, sizeof(int));
+  memcpy(holed, base_grid, LENGTH * sizeof(int));
+  printf("Make the board playable\n");
+  sudoku_make_playable(holed, LENGTH - clues);
+  printf("Board is playable\n");
+  if (human) {
+    sudoku_grid_print(base_grid, NULL);
+    sudoku_grid_print(holed, NULL);
+  } else {
+    printf("%s\n", sudoku_grid_to_str(base_grid));
+    printf("%s\n", sudoku_grid_to_str(holed));
+  }
+  free(base_grid);
+  free(holed);
 }

@@ -17,16 +17,36 @@ struct links *links_create_torus() {
   return head;
 }
 
-void links_destroy(struct links *head) {
-  struct links *tmp;
-  struct links *elem;
-  for (tmp = head->right; tmp != head; tmp = tmp->right) {
-    for (elem = tmp->up; elem->up != tmp; elem = elem->up) {
-      free(elem);
+void links_free(struct links *head) {
+  int col = 0;
+  int counter = 0;
+  struct links *header = head->right;
+  while (header != head) {
+    struct links *row = header->down;
+    int row_count = 0;
+    while (row != header) {
+      struct links *tmp = row->down;
+      free(row);
+      row = tmp;
+      row_count++;
     }
+    counter += row_count;
+    struct links *column = header->right;
+    free(header);
+    header = column;
+    col++;
   }
+  // printf("Free columns %d/%d \n", col, head->size);
+  free(head);
+}
+
+void links_destroy(struct links *head, struct plist *o) {
+  struct links *tmp, *row;
   for (tmp = head->right; tmp != head; tmp = tmp->right) {
-    free(tmp);
+    for (row = tmp->up; row->up != tmp; row = row->up) {
+      free(row);
+    }
+    // free(tmp);
   }
 }
 
@@ -65,6 +85,57 @@ void links_check(struct links *head) {
       printf("\n");
     }
   }
+}
+
+void links_debug(struct links *head) {
+  struct links *column, *row;
+  int columns = 0;
+  int total_rows = 0;
+  for (column = head->right; column != head; column = column->right) {
+    if (!column->right) {
+      printf("Corrupted links column[%p]->right %p\n", column, column->right);
+      continue;
+    }
+    if (!column->left) {
+      printf("Corrupted links column[%p]->left %p\n", column, column->left);
+      continue;
+    }
+    if (!column->up) {
+      printf("Corrupted links column[%p]->up %p\n", column, column->up);
+      continue;
+    }
+    if (!column->down) {
+      printf("Corrupted links column[%p]->down %p\n", column, column->down);
+      continue;
+    }
+    int rows = 0;
+    for (row = column->down; row != column; row = row->down) {
+      if (!row->right) {
+        printf("Corrupted links row[%p]->right %p\n", row, row->right);
+        continue;
+      }
+      if (!row->left) {
+        printf("Corrupted links row[%p]->left %p\n", row, row->left);
+        continue;
+      }
+      if (!row->up) {
+        printf("Corrupted links row[%p]->up %p\n", row, row->up);
+        continue;
+      }
+      if (!row->down) {
+        printf("Corrupted links row[%p]->down %p\n", row, row->down);
+        continue;
+      }
+      if (!row->column) {
+        printf("Corrupted links row[%p]->column %p\n", row, row->column);
+        continue;
+      }
+      rows++;
+    }
+    total_rows += rows;
+    columns++;
+  }
+  printf("Columns=%d Rows=%d\n", columns, total_rows);
 }
 
 // Add all column headers
@@ -156,6 +227,19 @@ void links_cover(struct links *column) {
   column->left->right = column->right;
 }
 
+void links_cover_free(struct links *column) {
+  struct links *i, *j;
+  for (i = column->down; i != column; i = i->down) {
+    for (j = i->right; j != i; j = j->right) {
+      j->down->up = j->up;
+      j->up->down = j->down;
+      j->column->size--;
+    }
+  }
+  column->right->left = column->left;
+  column->left->right = column->right;
+}
+
 void links_uncover(struct links *column) {
   struct links *i, *j;
   for (i = column->up; i != column; i = i->up) {
@@ -172,11 +256,14 @@ void links_uncover(struct links *column) {
 struct links *links_select_column(struct links *head) {
   struct links *header, *selected;
   int min = 1000000000;
-  for (header = head->right; header != head; header = header->right) {
+  header = head->right;
+  selected = header;
+  while (header != head) {
     if (header->size < min) {
-      selected = header;
       min = header->size;
+      selected = header;
     }
+    header = header->right;
   }
   return selected;
 }
@@ -185,7 +272,7 @@ struct links *links_random_column(struct links *head) {
   struct links *header;
   int random_index = rand() % head->size - 1;
   header = head->right;
-  while (random_index) {
+  while (random_index > 0) {
     header = header->right;
     random_index--;
   }
@@ -199,7 +286,7 @@ struct links *links_select_row(struct links *head, int index) {
       if (row->row == index) {
         node = row;
         do {
-          links_cover(node->column);
+          links_cover_free(node->column);
           node = node->right;
         } while (node != row);
         break;
@@ -230,74 +317,50 @@ void add_solution(struct plist *o) {
   o->solutions++;
 }
 
-void links_dancing(struct links *head, struct plist *o, int k, int limit) {
+void links_dancing(struct links *head, struct plist *o, int k, int limit,
+                   int determinisic) {
   struct links *column, *row, *j, *ok, *r;
-  o->i++;
   if (head->right == head) {
     add_solution(o);
-    return;
   }
-  if (o->i == 1) {
+  if (!determinisic && k < 1) {
+    column = links_random_column(head);
+  } else {
+    column = links_select_column(head);
   }
-  column = links_select_column(head);
   links_cover(column);
   for (row = column->down; row != column; row = row->down) {
+    if (!determinisic && column->size > 0) {
+      int random_index = rand() % column->size;
+      while (random_index) {
+        row = row->down;
+        random_index--;
+      }
+      if (row == column)
+        row = row->down;
+    }
     o->p[k] = row;
-    o->size++;
+    if (o->p[k]) {
+      o->size++;
+    }
     for (j = row->right; j != row; j = j->right) {
       links_cover(j->column);
     }
-    links_dancing(head, o, k + 1, limit);
+    if (limit == -1 || o->solutions < limit) {
+      links_dancing(head, o, k + 1, limit, determinisic);
+    }
     row = o->p[k];
+    if (o->p[k]) {
+      o->size--;
+    }
     o->p[k] = NULL;
-    o->size--;
     column = row->column;
     for (j = row->left; j != row; j = j->left) {
       links_uncover(j->column);
     }
-    if (limit != -1 && o->solutions == limit) {
-      break;
-    }
-  }
-  links_uncover(column);
-  return;
-}
-
-void links_dancing_non_deterministic(struct links *head, struct plist *o, int k,
-                                     int limit) {
-  struct links *column, *row, *j, *ok, *r;
-  o->i++;
-  if (head->right == head) {
-    add_solution(o);
-    return;
-  }
-  column = links_random_column(head);
-  links_cover(column);
-  for (row = column->down; row != column; row = row->down) {
-    int random_index = rand() % column->size;
-    while (random_index) {
-      row = row->down;
-      random_index--;
-    }
-    if (row == column) {
-      row = row->down;
-    }
-    o->p[k] = row;
-    o->size++;
-    for (j = row->right; j != row; j = j->right) {
-      links_cover(j->column);
-    }
-    links_dancing(head, o, k + 1, limit);
-    row = o->p[k];
-    o->p[k] = NULL;
-    o->size--;
-    column = row->column;
-    for (j = row->left; j != row; j = j->left) {
-      links_uncover(j->column);
-    }
-    if (limit != -1 && o->solutions == limit) {
-      break;
-    }
+    // if (limit != -1 && o->solutions == limit) {
+    //   break;
+    // }
   }
   links_uncover(column);
   return;
@@ -307,7 +370,7 @@ struct plist *partial_new() {
   struct plist *p = (struct plist *)malloc(sizeof(struct plist));
   p->solutions = 0;
   p->s = NULL;
-  p->i = 0;
+  p->size = 0;
   return p;
 }
 

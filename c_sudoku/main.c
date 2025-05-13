@@ -7,7 +7,7 @@
 
 void command_generate(struct args_generate *args) {
   srand(args->seed);
-  sudoku_generate(args->limit);
+  sudoku_generate(args->clues, args->human_readable);
 }
 
 void command_sparse(struct args_sparse *args) {

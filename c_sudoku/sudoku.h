@@ -17,6 +17,6 @@ int *sudoku_grid_stdin(void);
 int *sudoku_grid_from_str(char *str);
 void sudoku_grid_print(int *grid, int *solution);
 void sudoku_solve(int *grid, int limit);
-void sudoku_generate(int limit);
+void sudoku_generate(int clues, bool human);
 
 #endif
