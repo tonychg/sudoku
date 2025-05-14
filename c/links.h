@@ -29,8 +29,9 @@ struct plist {
 };
 
 struct links *links_exact_cover(int width);
-void links_add_nodes(struct links *head, int width, int height, int **matrix);
+struct links **links_add_nodes(struct links *head, int width, int height, int **matrix);
 void links_free(struct links *head);
+void links_destroy(struct links *head, struct links **rows, struct links **columns);
 void links_dancing(struct links *head, struct plist *o, int k, int limit,
                    int deterministic);
 void links_check(struct links *head);
@@ -39,6 +40,7 @@ void links_cover(struct links *column);
 void links_cover_free(struct links *column);
 void links_uncover(struct links *column);
 struct links *links_select_row(struct links *head, int index);
+struct links **links_columns_save(struct links *head);
 
 struct plist *partial_new();
 void partial_destroy(struct plist *o);

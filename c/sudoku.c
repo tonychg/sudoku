@@ -4,6 +4,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+int *sudoku_propagate_clue(int x, int y, int n)
+{
+	int j = x * SIZE + y * LENGTH + (n + 1);
+	int *position = malloc(sizeof(int) * (SIZE - 1));
+	printf("j=%d\n", j);
+	return position;
+}
+
 int **sudoku_sparse_build(int *grid)
 {
 	int j, indice, number, row, col, box, n, s = SIZE / 3;
@@ -236,35 +244,45 @@ int **sudoku_build_grid()
 	return grid;
 }
 
+struct plist *sudoku_x(int *grid, int limit, bool deterministic)
+{
+	int **matrix;
+	struct links *head, **cols, **rows;
+	struct plist *result;
+	result = partial_new();
+	matrix = sudoku_sparse_create();
+	head = links_exact_cover(MAX_WIDTH);
+	cols = links_columns_save(head);
+	rows = links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
+	sudoku_sparse_destroy(matrix);
+	if (grid)
+		sudoku_update_matrix(head, grid, result);
+	links_dancing(head, result, 0, limit, deterministic);
+	links_destroy(head, rows, cols);
+	return result;
+}
+
 void sudoku_solve(int *grid, int limit)
 {
-	struct links *head = links_exact_cover(MAX_WIDTH);
-	struct plist *o = partial_new();
-	struct slist *s;
-	int **matrix = sudoku_sparse_create();
-	links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
-	sudoku_sparse_destroy(matrix);
-	// int k = sudoku_update_matrix(head, grid, o);
-	links_dancing(head, o, 0, limit, true);
-	for (s = o->s; s != NULL; s = s->next) {
+	struct plist *result = sudoku_x(grid, limit, true);
+	for (struct slist *s = result->s; s != NULL; s = s->next)
 		sudoku_grid_print(grid, s->grid);
-	}
-	partial_destroy(o);
+	partial_destroy(result);
 }
 
 int sudoku_count_solution(int *grid)
 {
-	struct links *head = links_exact_cover(MAX_WIDTH);
-	struct plist *o = partial_new();
-	int solutions;
-	int **matrix = sudoku_sparse_create();
-	links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
-	sudoku_sparse_destroy(matrix);
-	// int k = sudoku_update_matrix(head, grid, o);
-	links_dancing(head, o, 0, 2, 1);
-	solutions = o->solutions;
-	partial_destroy(o);
-	links_free(head);
+	struct plist *result = sudoku_x(grid, 2, true);
+	int solutions = result->solutions;
+	partial_destroy(result);
+	return solutions;
+}
+
+int sudoku_count_solution_with_limit(int *grid, int limit)
+{
+	struct plist *result = sudoku_x(grid, limit, true);
+	int solutions = result->solutions;
+	partial_destroy(result);
 	return solutions;
 }
 
@@ -286,8 +304,8 @@ bool sudoku_make_playable(int *grid, int clues)
 		if (grid[i]) {
 			int number = grid[i];
 			grid[i] = 0;
-			// printf("%d\n", i);
-			if (sudoku_count_solution(grid) == 1) {
+			int solutions = sudoku_count_solution(grid);
+			if (solutions == 1) {
 				if (sudoku_make_playable(grid, clues - 1)) {
 					return true;
 				}
@@ -298,19 +316,39 @@ bool sudoku_make_playable(int *grid, int clues)
 	return false;
 }
 
+int *sudoku_create_random_grid(int *grid, int clues)
+{
+	int *result = (int *)calloc(LENGTH, sizeof(int));
+	int removed = 0;
+	memcpy(result, grid, LENGTH * sizeof(int));
+	while (LENGTH - removed != clues) {
+		int indice = sudoku_next_random(result);
+		result[indice] = 0;
+		removed++;
+	}
+	return result;
+}
+
+void sudoku_make_playable_full(int *grid, int clues)
+{
+	int solutions = 0;
+	int *result;
+	while (solutions != 2) {
+		result = sudoku_create_random_grid(grid, clues);
+		solutions = sudoku_count_solution_with_limit(result, 100);
+		printf("solutions=%d\n", solutions);
+		free(result);
+	}
+	sudoku_grid_print(result, NULL);
+}
+
 int *sudoku_generate_complete()
 {
 	int *grid = (int *)calloc(LENGTH, sizeof(int));
-	struct links *head = links_exact_cover(MAX_WIDTH);
-	struct plist *o = partial_new();
-	int **matrix = sudoku_sparse_create(NULL);
-	links_add_nodes(head, MAX_WIDTH, MAX_HEIGHT, matrix);
-	sudoku_sparse_destroy(matrix);
 	printf("Run X algorithm on empty grid\n");
-	links_dancing(head, o, 0, 1, 0);
-	memcpy(grid, o->s->grid, LENGTH * sizeof(int));
-	partial_destroy(o);
-	links_free(head);
+	struct plist *result = sudoku_x(grid, 1, false);
+	memcpy(grid, result->s->grid, LENGTH * sizeof(int));
+	partial_destroy(result);
 	return grid;
 }
 

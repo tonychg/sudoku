@@ -38,8 +38,34 @@ void links_free(struct links *head)
 		header = column;
 		col++;
 	}
-	// printf("Free columns %d/%d \n", col, head->size);
 	free(head);
+}
+
+void links_destroy(struct links *head, struct links **rows,
+		   struct links **columns)
+{
+	int i, j;
+	for (i = 0; rows[i]; i++)
+		free(rows[i]);
+	free(rows);
+	for (j = 0; columns[j]; j++)
+		free(columns[j]);
+	free(columns);
+	free(head);
+}
+
+struct links **links_columns_save(struct links *head)
+{
+	int i = 0;
+	struct links *header = head->right;
+	struct links **columns =
+		(struct links **)malloc(sizeof(struct links *) * head->size);
+	while (header != head) {
+		columns[i] = header;
+		header = header->right;
+	}
+	columns[i] = NULL;
+	return columns;
 }
 
 int count_columns(struct links *head)
@@ -146,10 +172,11 @@ void links_debug(struct links *head)
 // Add all column headers
 void links_add_header(struct links *head, int width)
 {
+	int x;
 	if (!head) {
 		head = links_create_torus();
 	}
-	for (int x = 0; x < width; x++) {
+	for (x = 0; x < width; x++) {
 		struct links *header =
 			(struct links *)malloc(sizeof(struct links));
 		if (!x) {
@@ -180,13 +207,16 @@ struct links *links_exact_cover(int width)
 	return head;
 }
 
-void links_add_nodes(struct links *head, int width, int height, int **matrix)
+struct links **links_add_nodes(struct links *head, int width, int height,
+			       int **matrix)
 {
-	int x, y;
+	int x, y, i;
 	struct links *header;
 	struct links *first;
 	struct links *tmp;
-	for (y = 0; y < height; y++) {
+	struct links **rows = (struct links **)malloc(sizeof(struct links *) *
+						      (width * height));
+	for (y = 0, i = 0; y < height; y++) {
 		for (x = 0, header = head->right, first = NULL; x < width;
 		     x++, header = header->right) {
 			if (matrix[x][y] != 0) {
@@ -221,9 +251,14 @@ void links_add_nodes(struct links *head, int width, int height, int **matrix)
 				new->n = y % 9;
 				new->column = header;
 				header->size++;
+				rows[i] = new;
+				i++;
 			}
 		}
 	}
+	rows[i] = NULL;
+	rows = (struct links **)realloc(rows, i * sizeof(struct links *));
+	return rows;
 }
 
 void links_cover(struct links *column)
@@ -304,7 +339,7 @@ struct links *links_select_row(struct links *head, int index)
 			if (row->row == index) {
 				node = row;
 				do {
-					links_cover_free(node->column);
+					links_cover(node->column);
 					node = node->right;
 				} while (node != row);
 				break;
@@ -321,8 +356,9 @@ void add_solution(struct plist *o)
 	int *grid = (int *)calloc(81, sizeof(int));
 	for (int i = 0; i < o->size; i++) {
 		tmp = o->p[i];
-		grid[tmp->indice] = tmp->n;
-		// grid[tmp->row / 9] = tmp->row % 9 + 1;
+		if (tmp) {
+			grid[tmp->indice] = tmp->n + 1;
+		}
 	}
 	new->grid = grid;
 	new->next = NULL;
@@ -379,9 +415,6 @@ void links_dancing(struct links *head, struct plist *o, int k, int limit,
 		for (j = row->left; j != row; j = j->left) {
 			links_uncover(j->column);
 		}
-		// if (limit != -1 && o->solutions == limit) {
-		//   break;
-		// }
 	}
 	links_uncover(column);
 	return;
