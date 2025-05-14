@@ -1,0 +1,5 @@
+*.o
+bin/sudoku
+bin/debug
+.tests
+gmon.out

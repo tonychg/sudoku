@@ -294,7 +294,8 @@ void add_solution(struct plist *o) {
   int *grid = (int *)calloc(81, sizeof(int));
   for (int i = 0; i < o->size; i++) {
     tmp = o->p[i];
-    grid[tmp->row / 9] = tmp->row % 9 + 1;
+    grid[tmp->indice] = tmp->n;
+    // grid[tmp->row / 9] = tmp->row % 9 + 1;
   }
   new->grid = grid;
   new->next = NULL;
