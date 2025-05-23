@@ -135,17 +135,16 @@ board_t *board_clone(board_t *b)
 
 board_t *board_backtracking(board_t *b)
 {
-	list_t *stack = list_new();
+	list_T *stack = list_create();
+	int stack_size = 0;
 	int depth = 0;
 	list_push(stack, (void *)(board_t *)b);
-	while (stack->size) {
+	stack_size++;
+	while (stack_size) {
 		board_t *current = (board_t *)list_pop(stack);
+		stack_size--;
 		if (board_is_complete(current)) {
 			return current;
-		}
-		if (depth > 500) {
-			stack->first = stack->first->prev;
-			depth = 0;
 		}
 		u8 i = board_next_empty(current);
 		u8 x = i % SIZE;
@@ -155,6 +154,7 @@ board_t *board_backtracking(board_t *b)
 				board_t *neighbor = board_clone(current);
 				board_set_number(neighbor, x, y, n);
 				list_push(stack, (void *)(board_t *)neighbor);
+				stack_size++;
 			}
 		}
 		free(current);

@@ -63,6 +63,7 @@ struct links **links_columns_save(struct links *head)
 	while (header != head) {
 		columns[i] = header;
 		header = header->right;
+		i++;
 	}
 	columns[i] = NULL;
 	return columns;
@@ -352,7 +353,7 @@ struct links *links_select_row(struct links *head, int index)
 void add_solution(struct plist *o)
 {
 	struct links *tmp;
-	struct slist *new = (struct slist *)malloc(sizeof(struct slist *));
+	struct slist *new = (struct slist *)malloc(sizeof(struct slist));
 	int *grid = (int *)calloc(81, sizeof(int));
 	for (int i = 0; i < o->size; i++) {
 		tmp = o->p[i];

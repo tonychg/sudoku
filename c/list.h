@@ -1,25 +1,23 @@
-#ifndef __SUDOKU_LIST__
-#define __SUDOKU_LIST__
+#ifndef __LIB_LIST__
+#define __LIB_LIST__
 
-#include <stddef.h>
-
-typedef struct list_node {
-    struct list_node *prev;
-    struct list_node *next;
-    size_t data;
-} list_node_t;
+#include <stdlib.h>
 
 typedef struct list {
-    struct list_node *first;
-    unsigned long size;
-} list_t;
+	void *data;
+	struct list *next;
+	struct list *prev;
+} list_T;
 
-list_t *list_new(void);
-void list_push(list_t *list, void *data);
-void list_insert(list_t *list, void *data);
-void list_del(list_t *list, void *data);
-void list_print(list_t *list);
-void list_print_reverse(list_t *list);
-size_t list_pop(list_t *list);
+#define LIST_NODE_NEW(void) (list_T *)malloc(sizeof(list_T));
+
+list_T *list_create(void);
+void list_push(list_T *head, void *data);
+void list_push_tail(list_T *head, void *data);
+list_T *list_pop(list_T *head);
+list_T *list_pop_tail(list_T *head);
+void list_iter(list_T *head, void (*callback)(int, void *));
+void list_iter_reverse(list_T *head, void (*callback)(int, void *));
+void list_free(list_T *head);
 
 #endif

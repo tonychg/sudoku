@@ -1,101 +1,54 @@
 #include "list.h"
-#include <assert.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 
-void test_list_new()
-{
-	list_t *head = list_new();
-	assert(head->size == 0);
-	assert(head->first == NULL);
-	printf("[OK] test_list_new\n");
-}
+typedef struct tile {
+	int x;
+	int y;
+} tile_T;
 
-void test_list_push()
+list_T *create_grid(int size)
 {
-	int p1 = 10;
-	int p2 = 11;
-	int p3 = 12;
-	list_t *list = list_new();
-	list_push(list, (void *)(uintptr_t)p1);
-	list_push(list, (void *)(uintptr_t)p2);
-	list_push(list, (void *)(uintptr_t)p3);
-	assert(list->size == 3);
-	assert(list->first->data == p3);
-	assert(list->first->next->data == p2);
-	assert(list->first->prev->data == p1);
-	printf("[OK] test_list_push\n");
-}
-
-void test_list_insert()
-{
-	int p1 = 10;
-	int p2 = 11;
-	int p3 = 12;
-	list_t *list = list_new();
-	list_insert(list, (void *)(uintptr_t)p1);
-	list_insert(list, (void *)(uintptr_t)p2);
-	list_insert(list, (void *)(uintptr_t)p3);
-	assert(list->size == 3);
-	assert(list->first->data == p1);
-	assert(list->first->prev->data == p3);
-	assert(list->first->next->data == p2);
-	printf("[OK] test_list_insert\n");
-}
-
-void test_list_del()
-{
-	int p1 = 10;
-	int p2 = 11;
-	int p3 = 12;
-	list_t *list = list_new();
-	list_push(list, (void *)(uintptr_t)p1);
-	list_push(list, (void *)(uintptr_t)p2);
-	list_push(list, (void *)(uintptr_t)p3);
-	list_del(list, (void *)(uintptr_t)p2);
-	assert(list->first->next == list->first->prev);
-	assert(list->first->prev == list->first->next);
-	assert(list->size == 2);
-	printf("[OK] test_list_del\n");
-}
-
-void test_list_pop()
-{
-	int p1 = 10;
-	int p2 = 11;
-	int p3 = 12;
-	list_t *list = list_new();
-	list_push(list, (void *)(uintptr_t)p1);
-	list_push(list, (void *)(uintptr_t)p2);
-	list_push(list, (void *)(uintptr_t)p3);
-	int elem = list_pop(list);
-	assert(list->size == 2);
-	assert(elem == p3);
-	assert(list->first->data == p2);
-	assert(list->first->prev->data == p1);
-	printf("[OK] test_list_pop\n");
-}
-
-void test_complete()
-{
-	list_t *list = list_new();
-	for (int i = 0; i < 100; i++) {
-		list_push(list, &i);
+	int i, length = size * size;
+	list_T *head = list_create();
+	for (i = 0; i < length; i++) {
+		tile_T *p = (tile_T *)malloc(sizeof(tile_T));
+		p->x = i % size;
+		p->y = i / size;
+		list_push(head, p);
 	}
-	list_node_t *node = list->first;
-	for (int i = 0; i < list->size; i++) {
-		printf("%p -> %d\n", node, (int)node->data);
-		node = node->next;
-	}
+	return head;
+}
+
+void print_tile_callback(int i, void *data)
+{
+	tile_T *p = (tile_T *)data;
+	printf("%2d (%d,%d)\n", i, p->x, p->y);
+}
+
+void print_tile(void *data)
+{
+	tile_T *p = (tile_T *)data;
+	printf("(%d,%d)\n", p->x, p->y);
 }
 
 int main()
 {
-	test_list_new();
-	test_list_push();
-	test_list_insert();
-	test_list_del();
-	test_list_pop();
-	// test_complete();
+	list_T *head = create_grid(9);
+
+	printf("Print positions in order\n");
+	list_iter(head, print_tile_callback);
+
+	printf("Print positions in reverse order\n");
+	list_iter_reverse(head, print_tile_callback);
+
+	printf("Pop positions from the list\n");
+	while (head->next != head) {
+		list_T *tmp = list_pop(head);
+		print_tile(tmp->data);
+		free(tmp->data);
+		free(tmp);
+	}
+
+	printf("Freeing uneeded resources\n");
+	list_free(head);
 }

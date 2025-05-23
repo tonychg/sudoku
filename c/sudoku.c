@@ -316,6 +316,11 @@ bool sudoku_make_playable(int *grid, int clues)
 	return false;
 }
 
+int *sudoku_backtracking_playable(int *grid, int clues)
+{
+	return grid;
+}
+
 int *sudoku_create_random_grid(int *grid, int clues)
 {
 	int *result = (int *)calloc(LENGTH, sizeof(int));

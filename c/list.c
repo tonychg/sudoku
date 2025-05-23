@@ -1,149 +1,80 @@
 #include "list.h"
-#include <stdio.h>
-#include <stdlib.h>
 
-/*
- * Print the list
- */
-void list_print(list_t *list)
+list_T *list_create(void)
 {
-	int i = 0;
-	list_node_t *elem = list->first;
-	if (!elem) {
-		return;
-	}
-	while (1) {
-		printf("i=%d data=%p\n", i, &elem->data);
-		elem = elem->next;
-		i++;
-		if (elem == list->first)
-			break;
-	}
-}
-
-void list_print_reverse(list_t *list)
-{
-	int i = 0;
-	list_node_t *elem = list->first->prev;
-	if (!elem) {
-		return;
-	}
-	while (1) {
-		printf("i=%d data=%p\n", i, &elem->data);
-		elem = elem->prev;
-		i++;
-		if (elem == list->first->prev)
-			break;
-	}
-}
-
-/*
- * Initialize the list
- */
-list_t *list_new(void)
-{
-	list_t *node = (list_t *)malloc(sizeof(list_t));
-	node->size = 0;
-	node->first = NULL;
+	list_T *node = LIST_NODE_NEW();
+	node->next = node;
+	node->prev = node;
+	node->data = NULL;
 	return node;
 }
 
-/*
- * Create the list and push the first element
- */
-void list_init(list_t *list, void *data)
+void list_push(list_T *head, void *data)
 {
-	list->first = (list_node_t *)malloc(sizeof(list_node_t));
-	list->first->prev = list->first;
-	list->first->next = list->first;
-	list->first->data = (size_t)data;
-	list->size++;
+	list_T *node = LIST_NODE_NEW();
+	node->data = data;
+	node->next = head->next;
+	node->prev = head;
+	head->next->prev = node;
+	head->next = node;
 }
 
-/*
- * Push an element at the beginning of the list
- */
-void list_push(list_t *list, void *data)
+void list_push_tail(list_T *head, void *data)
 {
-	if (!list->first) {
-		list_init(list, data);
-	} else {
-		list_node_t *node = (list_node_t *)malloc(sizeof(list_node_t));
-		node->prev = list->first->prev;
-		node->next = list->first;
-		node->data = (size_t)data;
-		if (list->size > 1) {
-			list->first->prev->next = node;
-		} else {
-			list->first->next = node;
-		}
-		list->first->prev = node;
-		list->first = node;
-		list->size++;
-	}
+	list_T *node = LIST_NODE_NEW();
+	node->data = data;
+	node->prev = head->prev;
+	node->next = head;
+	node->prev->next = node;
+	head->prev = node;
 }
 
-/*
- * Insert an element at the end of the list
- */
-void list_insert(list_t *list, void *data)
+list_T *list_pop(list_T *head)
 {
-	if (!list->first) {
-		list_init(list, data);
-	} else {
-		list_node_t *node = (list_node_t *)malloc(sizeof(list_node_t));
-		list_node_t *last = list->first->prev;
-		last->next = node;
-		node->prev = last;
-		node->next = list->first;
-		list->first->prev = node;
-		node->data = (size_t)data;
-		list->size++;
+	list_T *node = head->next;
+	head->next = node->next;
+	node->next->prev = head;
+	return node;
+}
+
+list_T *list_pop_tail(list_T *head)
+{
+	list_T *node = head->prev;
+	head->prev = node->prev;
+	node->prev->next = head;
+	return node;
+}
+
+void list_iter(list_T *head, void (*callback)(int, void *))
+{
+	int i = 0;
+	list_T *tmp = head->next;
+	while (tmp != head) {
+		callback(i, tmp->data);
+		tmp = tmp->next;
+		i++;
 	}
 }
 
-/*
- * Pop the first element of the list
- */
-size_t list_pop(list_t *list)
+void list_iter_reverse(list_T *head, void (*callback)(int, void *))
 {
-	if (!list->first)
-		return -1;
-	list_node_t *head = list->first;
-	size_t data = head->data;
-	if (list->size > 1) {
-		list_node_t *last = list->first->prev;
-		list_node_t *next = list->first->next;
-		next->prev = last;
-		last->next = next;
-		list->first = next;
-		list->size--;
-		free(head);
-	} else {
-		list->first = NULL;
-		list->size--;
-		free(head);
+	int i = 0;
+	list_T *tmp = head->prev;
+	while (tmp != head) {
+		callback(i, tmp->data);
+		tmp = tmp->prev;
+		i++;
 	}
-	return data;
 }
 
-/*
- * Remove a specific element in the list
- */
-void list_del(list_t *list, void *data)
+void list_free(list_T *head)
 {
-	if (!list->first) {
-		return;
+	list_T *next;
+	list_T *tmp = head->next;
+	while (tmp != head) {
+		next = tmp->next;
+		free(tmp);
+		tmp = next;
 	}
-	list_node_t *elem = list->first;
-	while (elem->next != list->first) {
-		if (elem->data == (size_t)data) {
-			break;
-		}
-		elem = elem->next;
-	}
-	elem->prev->next = elem->next;
-	elem->next->prev = elem->prev;
-	list->size--;
-	free(elem);
+	free(head);
 }
