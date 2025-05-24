@@ -3,6 +3,7 @@ SRC = board.c \
     random.c \
     links.c \
     sudoku.c \
+    hashtable.c \
     cli.c \
 
 SRC_MAIN = $(SRC)
@@ -43,7 +44,8 @@ test: $(OBJ)
 	@$(call run_test, "list")
 	@$(call run_test, "board")
 	@$(call run_test, "links")
-	# @$(call run_test, "sudoku")
+	@$(call run_test, "sudoku")
+	@$(call run_test, "hashtable")
 
 profile: all
 	./$(NAME)
