@@ -1,6 +1,7 @@
 #include "sudoku.h"
 #include "links.h"
 #include "list.h"
+#include "hashtable.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,42 +14,37 @@ int *sudoku_propagate_clue(int x, int y, int n)
 	return position;
 }
 
-int **sudoku_sparse_build(char *grid)
-{
-	int j, indice, number, row, col, box, n, s = SIZE / 3;
-	int **matrix = (int **)malloc(MAX_HEIGHT * sizeof(int *));
-	for (j = 0; j < MAX_HEIGHT; j++) {
-		matrix[j] = (int *)calloc(MAX_WIDTH, sizeof(int));
-	}
-	for (j = 0; j < MAX_HEIGHT; j++) {
-		number = j % SIZE;
-		indice = j / SIZE;
-		row = indice % SIZE;
-		col = indice / SIZE;
-		box = (row / s * s + col / s) * SIZE;
-		matrix[j][indice] = number + 1;
-		matrix[j][number + (col * SIZE) + LENGTH] = number + 1;
-		matrix[j][number + (row * SIZE) + LENGTH * 2] = number + 1;
-		matrix[j][number + box + LENGTH * 3] = number + 1;
-	}
-	if (grid) {
-		for (indice = 0; indice < LENGTH; indice++) {
-			if (grid[indice]) {
-				number = grid[indice];
-				row = indice / SIZE;
-				col = indice % SIZE;
-				box = (row / s * s + col / s) * SIZE;
-				j = indice * SIZE;
-				// for (n = 0; n < SIZE; n++) {
-				//   matrix[j + n][number + (col * SIZE) + LENGTH] = 0;
-				//   matrix[j + n][number + (row * SIZE) + LENGTH * 2] = 0;
-				//   matrix[j + n][number + box + LENGTH * 3] = 0;
-				// }
-			}
-		}
-	}
-	return matrix;
-}
+// int **sudoku_sparse_build(char *grid)
+// {
+// 	int j, indice, number, row, col, box, n, s = SIZE / 3;
+// 	int **matrix = (int **)malloc(MAX_HEIGHT * sizeof(int *));
+// 	for (j = 0; j < MAX_HEIGHT; j++) {
+// 		matrix[j] = (int *)calloc(MAX_WIDTH, sizeof(int));
+// 	}
+// 	for (j = 0; j < MAX_HEIGHT; j++) {
+// 		number = j % SIZE;
+// 		indice = j / SIZE;
+// 		row = indice % SIZE;
+// 		col = indice / SIZE;
+// 		box = (row / s * s + col / s) * SIZE;
+// 		matrix[j][indice] = number + 1;
+// 		matrix[j][number + (col * SIZE) + LENGTH] = number + 1;
+// 		matrix[j][number + (row * SIZE) + LENGTH * 2] = number + 1;
+// 		matrix[j][number + box + LENGTH * 3] = number + 1;
+// 	}
+// 	if (grid) {
+// 		for (indice = 0; indice < LENGTH; indice++) {
+// 			if (grid[indice]) {
+// 				number = grid[indice];
+// 				row = indice / SIZE;
+// 				col = indice % SIZE;
+// 				box = (row / s * s + col / s) * SIZE;
+// 				j = indice * SIZE;
+// 			}
+// 		}
+// 	}
+// 	return matrix;
+// }
 
 void sudoku_print_matrix_constraint(int **matrix, int constraint)
 {
@@ -175,10 +171,12 @@ int *sudoku_grid_from_str(char *str)
 
 char *sudoku_grid_to_str(int *grid)
 {
-	char *str = (char *)calloc(LENGTH, sizeof(char));
-	for (int i = 0; i < LENGTH; i++) {
+	int i;
+	char *str = (char *)malloc(LENGTH * sizeof(char));
+	for (i = 0; i < LENGTH; i++) {
 		str[i] = grid[i] + '0';
 	}
+	str[i] = '\0';
 	return str;
 }
 
@@ -309,11 +307,91 @@ bool sudoku_make_playable(char *grid, int clues)
 	return false;
 }
 
-int *sudoku_backtracking_playable(int *grid, int clues)
+int count_clues(char *grid)
 {
+	int counter;
+	for (counter = 0; *grid; grid++)
+		if (*grid != '0')
+			counter++;
+	return counter;
+}
+
+char **fisher_yates(char **array, int n)
+{
+	int i, j, upper_bound;
+	char *tmp;
+	char **result = (char **)malloc(sizeof(char *) * n);
+	for (i = n - 1; i > 0; i--) {
+		upper_bound = RAND_MAX - ((RAND_MAX % (i + 1)) + 1);
+		do {
+			j = rand() % (i + 1);
+		} while (j > upper_bound);
+		tmp = array[j];
+		array[j] = array[i];
+		array[i] = tmp;
+	}
+	return result;
+}
+
+char **get_neighbors(char *grid, int clues)
+{
+	char **neighbors = (char **)malloc(sizeof(char *) * clues);
+	int i, j = 0;
+	for (i = 0; grid[i]; i++) {
+		if (grid[i] != '0') {
+			char *neighbor = strdup(grid);
+			neighbor[i] = '0';
+			int n = sudoku_count_solution(neighbor);
+			if (n == 1) {
+				neighbors[j] = neighbor;
+				j++;
+			} else {
+				free(neighbor);
+			}
+		}
+	}
+	neighbors[j] = NULL;
+	fisher_yates(neighbors, j);
+	return neighbors;
+}
+
+char *sudoku_backtracking_playable(char *grid, int clues)
+{
+	list_T *node;
 	list_T *stack = list_create();
+	hashtable_T *visited = hashtable_create();
+	char *result;
+	int curr_clues, depth = 0;
 	list_push(stack, grid);
-	return grid;
+	while (stack->next != stack) {
+		node = list_pop(stack);
+		curr_clues = count_clues(node->data);
+		if (!(depth % 100)) {
+			printf("-> %7d Current clues: %d\n", depth, curr_clues);
+			sudoku_grid_print(node->data, NULL);
+		}
+		if (curr_clues == clues) {
+			result = strdup((char *)node->data);
+			break;
+		}
+		if (hashtable_lookup(visited, node->data))
+			continue;
+		result = strdup((char *)node->data);
+		char **neighbors = get_neighbors(result, curr_clues);
+		for (int i = 0; neighbors[i]; i++) {
+			if (!hashtable_lookup(visited, neighbors[i])) {
+				list_push(stack, neighbors[i]);
+			} else {
+				free(neighbors[i]);
+			}
+		}
+		free(neighbors);
+		hashtable_insert(visited, result);
+		depth++;
+	}
+	hashtable_destroy(visited);
+	list_free(stack);
+	return result;
 }
 
 char *sudoku_create_random_grid(char *grid, int clues)
@@ -367,9 +445,8 @@ void sudoku_generate(int clues, bool human)
 	char *base_grid, *holed;
 	base_grid = sudoku_generate_complete();
 	printf("Complete board generated\n");
-	holed = strdup(base_grid);
 	printf("Make the board playable\n");
-	sudoku_make_playable(holed, LENGTH - clues);
+	holed = sudoku_backtracking_playable(base_grid, clues);
 	printf("Board is playable\n");
 	if (human) {
 		sudoku_grid_print(base_grid, NULL);

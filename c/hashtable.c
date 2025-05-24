@@ -36,7 +36,7 @@ list_T *hashtable_lookup(hashtable_T *hashtab, char *key)
 {
 	list_T *bucket = hashtab->buckets[hash(hashtab, key)];
 	for (list_T *tmp = bucket->next; tmp != bucket; tmp = tmp->next)
-		if (strcmp(key, tmp->data) == 0)
+		if (strcmp(key, (char *)tmp->data) == 0)
 			return tmp;
 	return NULL;
 }

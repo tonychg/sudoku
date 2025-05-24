@@ -338,7 +338,7 @@ int *rebuild_grid(plist_T *o)
 	int *grid = (int *)calloc(81, sizeof(int));
 	for (int i = 0; i < o->size; i++) {
 		tmp = o->p[i];
-		if (tmp) {
+		if (tmp && tmp->indice < 81) {
 			grid[tmp->indice] = tmp->n + 1;
 		}
 	}
