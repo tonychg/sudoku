@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-struct links {
+typedef struct links {
     struct links *left;
     struct links *right;
     struct links *up;
@@ -14,36 +14,35 @@ struct links {
     int size;
     int indice;
     int n;
-};
+} links_T;
 
-struct slist {
+typedef struct slist {
     int *grid;
     struct slist *next;
-};
+} slist_T;
 
-struct plist {
+typedef struct plist {
     int size;
     int solutions;
-    struct slist *s;
-    struct links *p[81];
-};
+    slist_T *s;
+    links_T *p[81];
+} plist_T;
 
-struct links *links_exact_cover(int width);
-struct links **links_add_nodes(struct links *head, int width, int height, int **matrix);
-void links_free(struct links *head);
-void links_destroy(struct links *head, struct links **rows, struct links **columns);
-void links_dancing(struct links *head, struct plist *o, int k, int limit,
-                   int deterministic);
-void links_check(struct links *head);
-void links_debug(struct links *head);
-void links_cover(struct links *column);
-void links_cover_free(struct links *column);
-void links_uncover(struct links *column);
-struct links *links_select_row(struct links *head, int index);
-struct links **links_columns_save(struct links *head);
+links_T *links_exact_cover(int width);
+links_T **links_add_nodes(links_T *head, int width, int height, int **matrix);
+void links_free(links_T *head);
+void links_destroy(links_T *head, links_T **rows, links_T **columns);
+void links_dancing(links_T *head, plist_T *o, int k, int limit, int deterministic);
+void links_check(links_T *head);
+void links_debug(links_T *head);
+void links_cover(links_T *column);
+void links_cover_free(links_T *column);
+void links_uncover(links_T *column);
+links_T *links_select_row(links_T *head, int index);
+links_T **links_columns_save(links_T *head);
 
-struct plist *partial_new();
-void partial_destroy(struct plist *o);
+plist_T *partial_new();
+void partial_destroy(plist_T *o);
 
 
 #endif

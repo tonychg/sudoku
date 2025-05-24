@@ -5,9 +5,9 @@
 
 // Initialize head of torus linked list as described in
 // Knuth paper https://arxiv.org/pdf/cs/0011047
-struct links *links_create_torus()
+links_T *links_create_torus()
 {
-	struct links *head = (struct links *)malloc(sizeof(struct links));
+	links_T *head = (links_T *)malloc(sizeof(links_T));
 	head->left = head;
 	head->right = head;
 	head->up = head;
@@ -18,22 +18,22 @@ struct links *links_create_torus()
 	return head;
 }
 
-void links_free(struct links *head)
+void links_free(links_T *head)
 {
 	int col = 0;
 	int counter = 0;
-	struct links *header = head->right;
+	links_T *header = head->right;
 	while (header != head) {
-		struct links *row = header->down;
+		links_T *row = header->down;
 		int row_count = 0;
 		while (row != header) {
-			struct links *tmp = row->down;
+			links_T *tmp = row->down;
 			free(row);
 			row = tmp;
 			row_count++;
 		}
 		counter += row_count;
-		struct links *column = header->right;
+		links_T *column = header->right;
 		free(header);
 		header = column;
 		col++;
@@ -41,8 +41,7 @@ void links_free(struct links *head)
 	free(head);
 }
 
-void links_destroy(struct links *head, struct links **rows,
-		   struct links **columns)
+void links_destroy(links_T *head, links_T **rows, links_T **columns)
 {
 	int i, j;
 	for (i = 0; rows[i]; i++)
@@ -54,12 +53,11 @@ void links_destroy(struct links *head, struct links **rows,
 	free(head);
 }
 
-struct links **links_columns_save(struct links *head)
+links_T **links_columns_save(links_T *head)
 {
 	int i = 0;
-	struct links *header = head->right;
-	struct links **columns =
-		(struct links **)malloc(sizeof(struct links *) * head->size);
+	links_T *header = head->right;
+	links_T **columns = (links_T **)malloc(sizeof(links_T *) * head->size);
 	while (header != head) {
 		columns[i] = header;
 		header = header->right;
@@ -69,9 +67,9 @@ struct links **links_columns_save(struct links *head)
 	return columns;
 }
 
-int count_columns(struct links *head)
+int count_columns(links_T *head)
 {
-	struct links *column;
+	links_T *column;
 	int counter = 0;
 	for (column = head->right; column != head; column = column->right) {
 		counter++;
@@ -79,10 +77,10 @@ int count_columns(struct links *head)
 	return counter;
 }
 
-void debug_matrix(struct links *head)
+void debug_matrix(links_T *head)
 {
-	struct links *header;
-	struct links *tmp;
+	links_T *header;
+	links_T *tmp;
 	for (header = head->right; header != head; header = header->right) {
 		for (tmp = header->down; tmp != header; tmp = tmp->down) {
 			printf("col=%d row=%d\n", tmp->col + 1, tmp->row + 1);
@@ -90,9 +88,9 @@ void debug_matrix(struct links *head)
 	}
 }
 
-void links_check(struct links *head)
+void links_check(links_T *head)
 {
-	struct links *column, *row, *node;
+	links_T *column, *row, *node;
 	for (column = head->right; column != head; column = column->right) {
 		printf("C%d Size:%d\n", column->col, column->size);
 		for (row = column->down; row != column; row = row->down) {
@@ -109,9 +107,9 @@ void links_check(struct links *head)
 	}
 }
 
-void links_debug(struct links *head)
+void links_debug(links_T *head)
 {
-	struct links *column, *row;
+	links_T *column, *row;
 	int columns = 0;
 	int total_rows = 0;
 	for (column = head->right; column != head; column = column->right) {
@@ -171,15 +169,14 @@ void links_debug(struct links *head)
 }
 
 // Add all column headers
-void links_add_header(struct links *head, int width)
+void links_add_header(links_T *head, int width)
 {
 	int x;
 	if (!head) {
 		head = links_create_torus();
 	}
 	for (x = 0; x < width; x++) {
-		struct links *header =
-			(struct links *)malloc(sizeof(struct links));
+		links_T *header = (links_T *)malloc(sizeof(links_T));
 		if (!x) {
 			header->right = head;
 			header->left = head;
@@ -201,35 +198,34 @@ void links_add_header(struct links *head, int width)
 }
 
 // Construct the torus associated with the exact cover of a 9x9 Sudoku
-struct links *links_exact_cover(int width)
+links_T *links_exact_cover(int width)
 {
-	struct links *head = links_create_torus();
+	links_T *head = links_create_torus();
 	links_add_header(head, width);
 	return head;
 }
 
-struct links **links_add_nodes(struct links *head, int width, int height,
-			       int **matrix)
+links_T **links_add_nodes(links_T *head, int width, int height, int **matrix)
 {
 	int x, y, i;
-	struct links *header;
-	struct links *first;
-	struct links *tmp;
-	struct links **rows = (struct links **)malloc(sizeof(struct links *) *
-						      (width * height));
+	links_T *header;
+	links_T *first;
+	links_T *tmp;
+	links_T **rows =
+		(links_T **)malloc(sizeof(links_T *) * (width * height));
 	for (y = 0, i = 0; y < height; y++) {
 		for (x = 0, header = head->right, first = NULL; x < width;
 		     x++, header = header->right) {
 			if (matrix[x][y] != 0) {
-				struct links *new = (struct links *)malloc(
-					sizeof(struct links));
+				links_T *new =
+					(links_T *)malloc(sizeof(links_T));
 				if (!header->size) {
 					header->up = new;
 					header->down = new;
 					new->up = header;
 					new->down = header;
 				} else {
-					struct links *last = header->up;
+					links_T *last = header->up;
 					last->down = new;
 					header->up = new;
 					new->down = header;
@@ -258,13 +254,13 @@ struct links **links_add_nodes(struct links *head, int width, int height,
 		}
 	}
 	rows[i] = NULL;
-	rows = (struct links **)realloc(rows, i * sizeof(struct links *));
+	rows = (links_T **)realloc(rows, i * sizeof(links_T *));
 	return rows;
 }
 
-void links_cover(struct links *column)
+void links_cover(links_T *column)
 {
-	struct links *i, *j;
+	links_T *i, *j;
 	for (i = column->down; i != column; i = i->down) {
 		for (j = i->right; j != i; j = j->right) {
 			j->down->up = j->up;
@@ -276,9 +272,9 @@ void links_cover(struct links *column)
 	column->left->right = column->right;
 }
 
-void links_cover_free(struct links *column)
+void links_cover_free(links_T *column)
 {
-	struct links *i, *j;
+	links_T *i, *j;
 	for (i = column->down; i != column; i = i->down) {
 		for (j = i->right; j != i; j = j->right) {
 			j->down->up = j->up;
@@ -290,9 +286,9 @@ void links_cover_free(struct links *column)
 	column->left->right = column->right;
 }
 
-void links_uncover(struct links *column)
+void links_uncover(links_T *column)
 {
-	struct links *i, *j;
+	links_T *i, *j;
 	for (i = column->up; i != column; i = i->up) {
 		for (j = i->left; i != j; j = j->left) {
 			j->column->size++;
@@ -304,9 +300,9 @@ void links_uncover(struct links *column)
 	column->right->left = column;
 }
 
-struct links *links_select_column(struct links *head)
+links_T *links_select_column(links_T *head)
 {
-	struct links *header, *selected;
+	links_T *header, *selected;
 	int min = 1000000000;
 	header = head->right;
 	selected = header;
@@ -320,9 +316,9 @@ struct links *links_select_column(struct links *head)
 	return selected;
 }
 
-struct links *links_random_column(struct links *head)
+links_T *links_random_column(links_T *head)
 {
-	struct links *header;
+	links_T *header;
 	int random_index = rand() % head->size - 1;
 	header = head->right;
 	while (random_index > 0) {
@@ -332,9 +328,9 @@ struct links *links_random_column(struct links *head)
 	return header;
 }
 
-struct links *links_select_row(struct links *head, int index)
+links_T *links_select_row(links_T *head, int index)
 {
-	struct links *column, *row, *node;
+	links_T *column, *row, *node;
 	for (column = head->right; column != head; column = column->right) {
 		for (row = column->down; row != column; row = row->down) {
 			if (row->row == index) {
@@ -350,10 +346,10 @@ struct links *links_select_row(struct links *head, int index)
 	return row;
 }
 
-void add_solution(struct plist *o)
+void add_solution(plist_T *o)
 {
-	struct links *tmp;
-	struct slist *new = (struct slist *)malloc(sizeof(struct slist));
+	links_T *tmp;
+	slist_T *new = (slist_T *)malloc(sizeof(slist_T));
 	int *grid = (int *)calloc(81, sizeof(int));
 	for (int i = 0; i < o->size; i++) {
 		tmp = o->p[i];
@@ -366,7 +362,7 @@ void add_solution(struct plist *o)
 	if (!o->s) {
 		o->s = new;
 	} else {
-		struct slist *p = o->s;
+		slist_T *p = o->s;
 		while (p->next != NULL)
 			p = p->next;
 		p->next = new;
@@ -374,10 +370,10 @@ void add_solution(struct plist *o)
 	o->solutions++;
 }
 
-void links_dancing(struct links *head, struct plist *o, int k, int limit,
+void links_dancing(links_T *head, plist_T *o, int k, int limit,
 		   int determinisic)
 {
-	struct links *column, *row, *j;
+	links_T *column, *row, *j;
 	if (head->right == head) {
 		add_solution(o);
 	}
@@ -421,18 +417,18 @@ void links_dancing(struct links *head, struct plist *o, int k, int limit,
 	return;
 }
 
-struct plist *partial_new()
+plist_T *partial_new()
 {
-	struct plist *p = (struct plist *)malloc(sizeof(struct plist));
+	plist_T *p = (plist_T *)malloc(sizeof(plist_T));
 	p->solutions = 0;
 	p->s = NULL;
 	p->size = 0;
 	return p;
 }
 
-void partial_destroy(struct plist *o)
+void partial_destroy(plist_T *o)
 {
-	struct slist *s;
+	slist_T *s;
 	while (o->s != NULL) {
 		s = o->s;
 		o->s = o->s->next;

@@ -217,7 +217,7 @@ void sudoku_grid_print(int *grid, int *solution)
 	}
 }
 
-int sudoku_update_matrix(struct links *head, int *grid, struct plist *o)
+int sudoku_update_matrix(links_T *head, int *grid, plist_T *o)
 {
 	int k = 0;
 	for (int i = 0; i < LENGTH; i++) {
@@ -244,11 +244,11 @@ int **sudoku_build_grid()
 	return grid;
 }
 
-struct plist *sudoku_x(int *grid, int limit, bool deterministic)
+plist_T *sudoku_x(int *grid, int limit, bool deterministic)
 {
 	int **matrix;
-	struct links *head, **cols, **rows;
-	struct plist *result;
+	links_T *head, **cols, **rows;
+	plist_T *result;
 	result = partial_new();
 	matrix = sudoku_sparse_create();
 	head = links_exact_cover(MAX_WIDTH);
@@ -264,15 +264,15 @@ struct plist *sudoku_x(int *grid, int limit, bool deterministic)
 
 void sudoku_solve(int *grid, int limit)
 {
-	struct plist *result = sudoku_x(grid, limit, true);
-	for (struct slist *s = result->s; s != NULL; s = s->next)
+	plist_T *result = sudoku_x(grid, limit, true);
+	for (slist_T *s = result->s; s != NULL; s = s->next)
 		sudoku_grid_print(grid, s->grid);
 	partial_destroy(result);
 }
 
 int sudoku_count_solution(int *grid)
 {
-	struct plist *result = sudoku_x(grid, 2, true);
+	plist_T *result = sudoku_x(grid, 2, true);
 	int solutions = result->solutions;
 	partial_destroy(result);
 	return solutions;
@@ -280,7 +280,7 @@ int sudoku_count_solution(int *grid)
 
 int sudoku_count_solution_with_limit(int *grid, int limit)
 {
-	struct plist *result = sudoku_x(grid, limit, true);
+	plist_T *result = sudoku_x(grid, limit, true);
 	int solutions = result->solutions;
 	partial_destroy(result);
 	return solutions;
@@ -351,7 +351,7 @@ int *sudoku_generate_complete()
 {
 	int *grid = (int *)calloc(LENGTH, sizeof(int));
 	printf("Run X algorithm on empty grid\n");
-	struct plist *result = sudoku_x(grid, 1, false);
+	plist_T *result = sudoku_x(grid, 1, false);
 	memcpy(grid, result->s->grid, LENGTH * sizeof(int));
 	partial_destroy(result);
 	return grid;
