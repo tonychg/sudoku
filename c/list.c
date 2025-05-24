@@ -45,6 +45,11 @@ list_T *list_pop_tail(list_T *head)
 	return node;
 }
 
+bool list_empty(list_T *head)
+{
+	return head->next == head;
+}
+
 void list_iter(list_T *head, void (*callback)(int, void *))
 {
 	int i = 0;
@@ -65,6 +70,25 @@ void list_iter_reverse(list_T *head, void (*callback)(int, void *))
 		tmp = tmp->prev;
 		i++;
 	}
+}
+
+list_iterator_T *list_iter_new(list_T *head)
+{
+	list_iterator_T *it;
+	it = (list_iterator_T *)malloc(sizeof(list_iterator_T));
+	it->index = 0;
+	it->current = head;
+	it->head = head;
+	return it;
+}
+
+list_T *list_iter_next(list_iterator_T *it)
+{
+	it->current = it->current->next;
+	it->index++;
+	if (it->current == it->head)
+		return NULL;
+	return it->current;
 }
 
 void list_free(list_T *head)

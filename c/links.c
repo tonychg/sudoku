@@ -272,20 +272,6 @@ void links_cover(links_T *column)
 	column->left->right = column->right;
 }
 
-void links_cover_free(links_T *column)
-{
-	links_T *i, *j;
-	for (i = column->down; i != column; i = i->down) {
-		for (j = i->right; j != i; j = j->right) {
-			j->down->up = j->up;
-			j->up->down = j->down;
-			j->column->size--;
-		}
-	}
-	column->right->left = column->left;
-	column->left->right = column->right;
-}
-
 void links_uncover(links_T *column)
 {
 	links_T *i, *j;
@@ -346,10 +332,9 @@ links_T *links_select_row(links_T *head, int index)
 	return row;
 }
 
-void add_solution(plist_T *o)
+int *rebuild_grid(plist_T *o)
 {
 	links_T *tmp;
-	slist_T *new = (slist_T *)malloc(sizeof(slist_T));
 	int *grid = (int *)calloc(81, sizeof(int));
 	for (int i = 0; i < o->size; i++) {
 		tmp = o->p[i];
@@ -357,17 +342,7 @@ void add_solution(plist_T *o)
 			grid[tmp->indice] = tmp->n + 1;
 		}
 	}
-	new->grid = grid;
-	new->next = NULL;
-	if (!o->s) {
-		o->s = new;
-	} else {
-		slist_T *p = o->s;
-		while (p->next != NULL)
-			p = p->next;
-		p->next = new;
-	}
-	o->solutions++;
+	return grid;
 }
 
 void links_dancing(links_T *head, plist_T *o, int k, int limit,
@@ -375,7 +350,9 @@ void links_dancing(links_T *head, plist_T *o, int k, int limit,
 {
 	links_T *column, *row, *j;
 	if (head->right == head) {
-		add_solution(o);
+		int *grid = rebuild_grid(o);
+		list_push_tail(o->grids, grid);
+		o->solutions++;
 	}
 	if (!determinisic && k < 1) {
 		column = links_random_column(head);
@@ -421,19 +398,25 @@ plist_T *partial_new()
 {
 	plist_T *p = (plist_T *)malloc(sizeof(plist_T));
 	p->solutions = 0;
-	p->s = NULL;
+	p->grids = list_create();
 	p->size = 0;
 	return p;
 }
 
 void partial_destroy(plist_T *o)
 {
-	slist_T *s;
-	while (o->s != NULL) {
-		s = o->s;
-		o->s = o->s->next;
-		free(s->grid);
-		free(s);
+	list_T *next;
+	list_T *tmp = o->grids->next;
+	while (tmp != o->grids) {
+		next = tmp->next;
+		if (tmp->data)
+			free(tmp->data);
+		free(tmp);
+		tmp = next;
 	}
+	if (tmp == o->grids->next) {
+		free(o->grids->data);
+	}
+	free(o->grids);
 	free(o);
 }

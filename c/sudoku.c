@@ -1,5 +1,6 @@
 #include "sudoku.h"
 #include "links.h"
+#include "list.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -265,8 +266,9 @@ plist_T *sudoku_x(int *grid, int limit, bool deterministic)
 void sudoku_solve(int *grid, int limit)
 {
 	plist_T *result = sudoku_x(grid, limit, true);
-	for (slist_T *s = result->s; s != NULL; s = s->next)
-		sudoku_grid_print(grid, s->grid);
+	list_T *tmp;
+	for (tmp = result->grids->next; tmp != result->grids; tmp = tmp->next)
+		sudoku_grid_print(grid, tmp->data);
 	partial_destroy(result);
 }
 
@@ -318,6 +320,8 @@ bool sudoku_make_playable(int *grid, int clues)
 
 int *sudoku_backtracking_playable(int *grid, int clues)
 {
+	list_T *stack = list_create();
+	list_push(stack, grid);
 	return grid;
 }
 
@@ -352,7 +356,7 @@ int *sudoku_generate_complete()
 	int *grid = (int *)calloc(LENGTH, sizeof(int));
 	printf("Run X algorithm on empty grid\n");
 	plist_T *result = sudoku_x(grid, 1, false);
-	memcpy(grid, result->s->grid, LENGTH * sizeof(int));
+	memcpy(grid, result->grids->next->data, LENGTH * sizeof(int));
 	partial_destroy(result);
 	return grid;
 }

@@ -41,6 +41,13 @@ int main()
 	printf("Print positions in reverse order\n");
 	list_iter_reverse(head, print_tile_callback);
 
+	list_iterator_T *it = list_iter_new(head);
+	list_T *elem;
+
+	while ((elem = list_iter_next(it)))
+		print_tile(elem->data);
+	free(it);
+
 	printf("Pop positions from the list\n");
 	while (head->next != head) {
 		list_T *tmp = list_pop(head);

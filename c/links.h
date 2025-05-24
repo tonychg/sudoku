@@ -1,6 +1,7 @@
 #ifndef __SUDOKU_LINKS__
 #define __SUDOKU_LINKS__
 
+#include "list.h"
 #include <stdbool.h>
 
 typedef struct links {
@@ -16,15 +17,10 @@ typedef struct links {
     int n;
 } links_T;
 
-typedef struct slist {
-    int *grid;
-    struct slist *next;
-} slist_T;
-
 typedef struct plist {
     int size;
     int solutions;
-    slist_T *s;
+    list_T *grids;
     links_T *p[81];
 } plist_T;
 
@@ -36,7 +32,6 @@ void links_dancing(links_T *head, plist_T *o, int k, int limit, int deterministi
 void links_check(links_T *head);
 void links_debug(links_T *head);
 void links_cover(links_T *column);
-void links_cover_free(links_T *column);
 void links_uncover(links_T *column);
 links_T *links_select_row(links_T *head, int index);
 links_T **links_columns_save(links_T *head);
