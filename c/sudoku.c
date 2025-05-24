@@ -13,7 +13,7 @@ int *sudoku_propagate_clue(int x, int y, int n)
 	return position;
 }
 
-int **sudoku_sparse_build(int *grid)
+int **sudoku_sparse_build(char *grid)
 {
 	int j, indice, number, row, col, box, n, s = SIZE / 3;
 	int **matrix = (int **)malloc(MAX_HEIGHT * sizeof(int *));
@@ -151,14 +151,16 @@ void sudoku_sparse_write(int **matrix, char *dest)
 	fclose(fptr);
 }
 
-int *sudoku_grid_stdin(void)
+char *sudoku_grid_stdin(void)
 {
+	int i;
 	char buf[LENGTH + 2];
-	int *grid = (int *)calloc(LENGTH, sizeof(int));
+	char *grid = (char *)malloc(LENGTH * sizeof(char));
 	fgets(buf, LENGTH + 2, stdin);
-	for (int i = 0; i < LENGTH; i++) {
-		grid[i] = buf[i] - '0';
+	for (i = 0; i < LENGTH; i++) {
+		grid[i] = buf[i];
 	}
+	grid[i] = '\0';
 	return grid;
 }
 
@@ -180,9 +182,9 @@ char *sudoku_grid_to_str(int *grid)
 	return str;
 }
 
-void sudoku_grid_print(int *grid, int *solution)
+void sudoku_grid_print(char *grid, char *solution)
 {
-	int number;
+	char number;
 	char line[] = "+---+---+---+";
 
 	for (int y = 0; y < SIZE; y++) {
@@ -192,23 +194,22 @@ void sudoku_grid_print(int *grid, int *solution)
 		for (int x = 0; x < SIZE; x++) {
 			int index = y * SIZE + x;
 			if (solution != NULL) {
-				number = grid[index] ? grid[index] :
-						       solution[index];
+				number = grid[index] != '0' ? grid[index] :
+							      solution[index];
 			} else {
 				number = grid[index];
 			}
-			char num_char = number + '0';
-			if (number == 0) {
-				num_char = ' ';
+			if (number == '0') {
+				number = ' ';
 			}
 			if (x % TIER == 2) {
-				printf("%c|", num_char);
+				printf("%c|", number);
 			} else if (x == 0) {
-				printf("|%c", num_char);
+				printf("|%c", number);
 			} else if (y % TIER == 2 && x == SIZE - 1) {
-				printf("%c", num_char);
+				printf("%c", number);
 			} else {
-				printf("%c", num_char);
+				printf("%c", number);
 			}
 		}
 		printf("\n");
@@ -218,14 +219,14 @@ void sudoku_grid_print(int *grid, int *solution)
 	}
 }
 
-int sudoku_update_matrix(links_T *head, int *grid, plist_T *o)
+int sudoku_update_matrix(links_T *head, char *grid, plist_T *o)
 {
 	int k = 0;
 	for (int i = 0; i < LENGTH; i++) {
-		if (grid[i]) {
+		if (grid[i] != '0') {
 			int x = i % SIZE;
 			int y = i / SIZE;
-			int number = grid[i];
+			int number = grid[i] - '0';
 			int row_index = y * 81 + x * 9 + (number - 1);
 			o->p[k] = links_select_row(head, row_index);
 			o->size++;
@@ -235,17 +236,7 @@ int sudoku_update_matrix(links_T *head, int *grid, plist_T *o)
 	return k;
 }
 
-int **sudoku_build_grid()
-{
-	int y;
-	int **grid = (int **)malloc(sizeof(int *));
-	for (y = 0; y < SIZE; y++) {
-		grid[y] = (int *)calloc(SIZE, sizeof(int));
-	}
-	return grid;
-}
-
-plist_T *sudoku_x(int *grid, int limit, bool deterministic)
+plist_T *sudoku_x(char *grid, int limit, bool deterministic)
 {
 	int **matrix;
 	links_T *head, **cols, **rows;
@@ -263,16 +254,16 @@ plist_T *sudoku_x(int *grid, int limit, bool deterministic)
 	return result;
 }
 
-void sudoku_solve(int *grid, int limit)
+void sudoku_solve(char *grid, int limit)
 {
 	plist_T *result = sudoku_x(grid, limit, true);
 	list_T *tmp;
 	for (tmp = result->grids->next; tmp != result->grids; tmp = tmp->next)
-		sudoku_grid_print(grid, tmp->data);
+		sudoku_grid_print(grid, sudoku_grid_to_str(tmp->data));
 	partial_destroy(result);
 }
 
-int sudoku_count_solution(int *grid)
+int sudoku_count_solution(char *grid)
 {
 	plist_T *result = sudoku_x(grid, 2, true);
 	int solutions = result->solutions;
@@ -280,7 +271,7 @@ int sudoku_count_solution(int *grid)
 	return solutions;
 }
 
-int sudoku_count_solution_with_limit(int *grid, int limit)
+int sudoku_count_solution_with_limit(char *grid, int limit)
 {
 	plist_T *result = sudoku_x(grid, limit, true);
 	int solutions = result->solutions;
@@ -288,24 +279,24 @@ int sudoku_count_solution_with_limit(int *grid, int limit)
 	return solutions;
 }
 
-int sudoku_next_random(int *grid)
+int sudoku_next_random(char *grid)
 {
 	int i;
 	do {
 		i = rand() % LENGTH;
-	} while (grid[i] == 0);
+	} while (grid[i] == '0');
 	return i;
 }
 
-bool sudoku_make_playable(int *grid, int clues)
+bool sudoku_make_playable(char *grid, int clues)
 {
 	if (!clues) {
 		return true;
 	}
 	for (int i = 0; i < LENGTH; i++) {
-		if (grid[i]) {
-			int number = grid[i];
-			grid[i] = 0;
+		if (grid[i] != '0') {
+			char number = grid[i];
+			grid[i] = '0';
 			int solutions = sudoku_count_solution(grid);
 			if (solutions == 1) {
 				if (sudoku_make_playable(grid, clues - 1)) {
@@ -325,11 +316,10 @@ int *sudoku_backtracking_playable(int *grid, int clues)
 	return grid;
 }
 
-int *sudoku_create_random_grid(int *grid, int clues)
+char *sudoku_create_random_grid(char *grid, int clues)
 {
-	int *result = (int *)calloc(LENGTH, sizeof(int));
+	char *result = strdup(grid);
 	int removed = 0;
-	memcpy(result, grid, LENGTH * sizeof(int));
 	while (LENGTH - removed != clues) {
 		int indice = sudoku_next_random(result);
 		result[indice] = 0;
@@ -338,10 +328,10 @@ int *sudoku_create_random_grid(int *grid, int clues)
 	return result;
 }
 
-void sudoku_make_playable_full(int *grid, int clues)
+void sudoku_make_playable_full(char *grid, int clues)
 {
 	int solutions = 0;
-	int *result;
+	char *result;
 	while (solutions != 2) {
 		result = sudoku_create_random_grid(grid, clues);
 		solutions = sudoku_count_solution_with_limit(result, 100);
@@ -351,23 +341,33 @@ void sudoku_make_playable_full(int *grid, int clues)
 	sudoku_grid_print(result, NULL);
 }
 
-int *sudoku_generate_complete()
+char *sudoku_new_grid()
 {
-	int *grid = (int *)calloc(LENGTH, sizeof(int));
+	int i;
+	char *grid = (char *)malloc(sizeof(char) * LENGTH);
+	for (i = 0; i < LENGTH; i++) {
+		grid[i] = '0';
+	}
+	grid[i] = '\0';
+	return grid;
+}
+
+char *sudoku_generate_complete()
+{
+	char *grid = sudoku_new_grid();
 	printf("Run X algorithm on empty grid\n");
 	plist_T *result = sudoku_x(grid, 1, false);
-	memcpy(grid, result->grids->next->data, LENGTH * sizeof(int));
+	grid = sudoku_grid_to_str(result->grids->next->data);
 	partial_destroy(result);
 	return grid;
 }
 
 void sudoku_generate(int clues, bool human)
 {
-	int *base_grid, *holed;
+	char *base_grid, *holed;
 	base_grid = sudoku_generate_complete();
 	printf("Complete board generated\n");
-	holed = (int *)calloc(LENGTH, sizeof(int));
-	memcpy(holed, base_grid, LENGTH * sizeof(int));
+	holed = strdup(base_grid);
 	printf("Make the board playable\n");
 	sudoku_make_playable(holed, LENGTH - clues);
 	printf("Board is playable\n");
@@ -375,8 +375,8 @@ void sudoku_generate(int clues, bool human)
 		sudoku_grid_print(base_grid, NULL);
 		sudoku_grid_print(holed, NULL);
 	} else {
-		printf("%s\n", sudoku_grid_to_str(base_grid));
-		printf("%s\n", sudoku_grid_to_str(holed));
+		printf("%s\n", base_grid);
+		printf("%s\n", holed);
 	}
 	free(base_grid);
 	free(holed);

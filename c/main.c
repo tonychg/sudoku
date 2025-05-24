@@ -20,15 +20,14 @@ void command_sparse(struct args_sparse *args)
 
 void command_solve(struct args_solve *args)
 {
-	int *grid;
+	char *grid;
 	if (args->from_stdin) {
 		grid = sudoku_grid_stdin();
 	} else {
-		grid = sudoku_grid_from_str(args->grid);
+		grid = args->grid;
 	}
 	sudoku_grid_print(grid, NULL);
 	sudoku_solve(grid, args->limit);
-	free(grid);
 }
 
 void command_run(struct command *cmd)
