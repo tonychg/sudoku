@@ -6,14 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-int *sudoku_propagate_clue(int x, int y, int n)
-{
-	int j = x * SIZE + y * LENGTH + (n + 1);
-	int *position = malloc(sizeof(int) * (SIZE - 1));
-	printf("j=%d\n", j);
-	return position;
-}
-
 // int **sudoku_sparse_build(char *grid)
 // {
 // 	int j, indice, number, row, col, box, n, s = SIZE / 3;
@@ -286,27 +278,6 @@ int sudoku_next_random(char *grid)
 	return i;
 }
 
-bool sudoku_make_playable(char *grid, int clues)
-{
-	if (!clues) {
-		return true;
-	}
-	for (int i = 0; i < LENGTH; i++) {
-		if (grid[i] != '0') {
-			char number = grid[i];
-			grid[i] = '0';
-			int solutions = sudoku_count_solution(grid);
-			if (solutions == 1) {
-				if (sudoku_make_playable(grid, clues - 1)) {
-					return true;
-				}
-			}
-			grid[i] = number;
-		}
-	}
-	return false;
-}
-
 int count_clues(char *grid)
 {
 	int counter;
@@ -392,31 +363,6 @@ char *sudoku_backtracking_playable(char *grid, int clues)
 	hashtable_destroy(visited);
 	list_free(stack);
 	return result;
-}
-
-char *sudoku_create_random_grid(char *grid, int clues)
-{
-	char *result = strdup(grid);
-	int removed = 0;
-	while (LENGTH - removed != clues) {
-		int indice = sudoku_next_random(result);
-		result[indice] = 0;
-		removed++;
-	}
-	return result;
-}
-
-void sudoku_make_playable_full(char *grid, int clues)
-{
-	int solutions = 0;
-	char *result;
-	while (solutions != 2) {
-		result = sudoku_create_random_grid(grid, clues);
-		solutions = sudoku_count_solution_with_limit(result, 100);
-		printf("solutions=%d\n", solutions);
-		free(result);
-	}
-	sudoku_grid_print(result, NULL);
 }
 
 char *sudoku_new_grid()

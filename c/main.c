@@ -8,6 +8,7 @@
 void command_generate(struct args_generate *args)
 {
 	srand(args->seed);
+	printf("seed=%d\n", args->seed);
 	sudoku_generate(args->clues, args->human_readable);
 }
 
